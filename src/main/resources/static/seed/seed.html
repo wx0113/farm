@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>种子清单管理系统</title>
+
+    <!-- 引入 EasyUI 样式 -->
+    <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
+
+    <!-- 引入 jQuery 和 EasyUI 脚本 -->
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; }
+
+        .layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 顶部：水平平铺 不拉伸 */
+        .top-frame {
+            height: 80px;
+            position: relative;
+            background: url("/images/topbar.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+
+        /* 图标按钮组：靠右放置 */
+        .top-buttons {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* 图标按钮样式 */
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .icon-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 左上角用户信息面板 */
+        .user-panel {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(245, 245, 245, 0);
+            padding: 8px 15px;
+            border-radius: 8px;
+            /*border: 1px solid #ddd;*/
+            z-index: 10;
+        }
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #e0e0e0;
+        }
+        .user-info {
+            text-align: left;
+            line-height: 1.5;
+            min-width: 160px;
+        }
+        .item-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .item-text {
+            vertical-align: middle;
+        }
+
+        /* 内容区：去掉中间图片，放种子管理内容 */
+        .content-frame {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 底部：水平平铺 不拉伸 */
+        .bottom-frame {
+            height: 40px;
+            background: url("/images/bottom.png");
+            background-size: auto 100%;
+        }
+
+        /* ===== 原有样式保持不变 ===== */
+        .tools-imagePositioner-display {
+            width: 200px;
+            height: 300px;
+            border: 1px solid #ccc;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        .tools-imagePositioner-display img {
+            width: 100%;
+            height: auto;
+        }
+        .search-box {
+            padding: 2px 6px;
+            width: 160px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            font-size: 12px;
+            outline: none;
+        }
+        .toolbar-separator {
+            display: inline-block;
+            width: 1px;
+            height: 24px;
+            background: #ddd;
+            margin: 0 5px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <div class="top-frame">
+        <!-- 左上角用户信息面板 -->
+        <div class="user-panel" id="userPanel">
+            <img class="user-avatar" id="userAvatar" src="images/default_avatar.png" alt="头像">
+            <div class="user-info">
+                <div><strong id="currentNickname">未知用户</strong></div>
+                <div>
+                    经验：<span id="currentExp">0</span>金币：<span id="currentGold">0</span>积分：<span id="currentPoints">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右上角五个图标按钮 -->
+        <div class="top-buttons">
+            <button class="icon-btn" id="switchUserBtn" title="切换用户">
+                <img src="/images/userSelect.png" alt="切换用户">
+            </button>
+            <button class="icon-btn" onclick="navigate('index.html')" title="首页">
+                <img src="/images/farmLands.png" alt="首页">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="商店">
+                <img src="/images/buySeed.png" alt="商店">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="仓库">
+                <img src="/images/userManager.png" alt="仓库">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="图鉴">
+                <img src="/images/seedManager.png" alt="图鉴">
+            </button>
+        </div>
+    </div>
+
+    <!-- 内容区：种子管理 -->
+    <div class="content-frame">
+        <!-- 搜索栏 -->
+        <div style="height:40px;padding:5px 10px;background:#f5f5f5;">
+            <span>种子名称：</span>
+            <input id="searchSeedName" class="easyui-textbox" style="width:200px;">
+            <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" onclick="querySeeds()">查询</a>
+        </div>
+
+        <!-- 数据表格 -->
+        <table id="seedGrid" class="easyui-datagrid" style="width:100%;height:calc(100% - 40px);"
+               data-options="
+                   url:'/seed/query',
+                   toolbar:'#toolbar',
+                   pagination:true,
+                   rownumbers:true,
+                   singleSelect:true,
+                   pageSize:10,
+                   pageList:[10,20,50],
+                   method:'get'
+               ">
+            <thead>
+            <tr>
+                <th data-options="field:'id',width:40">ID</th>
+                <th data-options="field:'seedId',width:60">种子ID</th>
+                <th data-options="field:'seedName',width:100">种子名称</th>
+                <th data-options="field:'xSeasonCrop',width:80">X季作物</th>
+                <th data-options="field:'seedLevel',width:70">种子等级</th>
+                <th data-options="field:'seedType',width:70">种子类型</th>
+                <th data-options="field:'experience',width:70">可获经验</th>
+                <th data-options="field:'maturityTime',width:100">成熟时间(秒)</th>
+                <th data-options="field:'harvestCount',width:100">可获收成</th>
+                <th data-options="field:'purchasePrice',width:80">采购价</th>
+                <th data-options="field:'fruitPrice',width:80">果实单价</th>
+                <th data-options="field:'landRequirement',width:80">土地需求</th>
+                <th data-options="field:'points',width:80">可获积分</th>
+                <th data-options="field:'tipInfo',width:200">提示信息</th>
+                <th data-options="field:'action',width:80,align:'center',formatter:actionFormatter">操作</th>
+            </tr>
+            </thead>
+        </table>
+    </div>
+
+    <div class="bottom-frame"></div>
+</div>
+
+<!-- 工具栏 -->
+<div id="toolbar">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="newRecord()">添加</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-edit" plain="true" onclick="editRecord()">编辑</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" plain="true" onclick="cancelEdit()">取消</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="deleteRecord()">删除</a>
+</div>
+
+<!-- 用户选择对话框 -->
+<div id="userSelectDialog" class="easyui-dialog" title="用户选择"
+     closed="true" style="width: 400px; padding: 20px; z-index: 9999;"
+     buttons="#dlgUserButtons">
+    <div style="margin-bottom: 15px;">
+        <span style="font-weight: bold;">选择用户：</span>
+        <input id="userCombo" style="width: 200px;">
+    </div>
+    <div style="text-align: center; font-size: 12px; color: #666;">
+        请在下拉框中选择用户昵称，并点击"确认"按钮切换用户。
+    </div>
+</div>
+<div id="dlgUserButtons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" id="confirmUserBtn"
+       data-options="iconCls:'icon-ok'">确认</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton"
+       data-options="iconCls:'icon-cancel'"
+       onclick="$('#userSelectDialog').dialog('close')">取消</a>
+</div>
+
+<!-- 编辑窗口 -->
+<div id="formContainer" class="easyui-dialog"
+     data-options="closed:true, modal:true, title:'添加数据', buttons:'#formButtons'"
+     style="width:700px; height:480px; padding:10px 20px; z-index:9999;">
+    <form id="formEditor" method="post" style="position:relative; z-index:10000;">
+        <input type="hidden" name="id">
+        <table cellpadding="5">
+            <tr>
+                <td>种子ID:</td>
+                <td><input class="easyui-textbox" name="seedId" required="true"></td>
+                <td>种子名称:</td>
+                <td><input class="easyui-textbox" name="seedName" required="true"></td>
+            </tr>
+            <tr>
+                <td>X季作物:</td>
+                <td>
+                    <select class="easyui-combobox" name="xSeasonCrop" panelHeight="auto">
+                        <option value="1季作物">1季作物</option>
+                        <option value="2季作物">2季作物</option>
+                        <option value="3季作物">3季作物</option>
+                    </select>
+                </td>
+                <td>种子等级:</td>
+                <td><input class="easyui-numberspinner" name="seedLevel" value="1" min="1" max="100"></td>
+            </tr>
+            <tr>
+                <td>种子类型:</td>
+                <td>
+                    <select class="easyui-combobox" name="seedType" panelHeight="auto">
+                        <option value="水果">水果</option>
+                        <option value="蔬菜">蔬菜</option>
+                        <option value="谷物">谷物</option>
+                    </select>
+                </td>
+                <td>可获经验:</td>
+                <td><input class="easyui-numberspinner" name="experience" value="0"></td>
+            </tr>
+            <tr>
+                <td>成熟时间(秒):</td>
+                <td><input class="easyui-numberspinner" name="maturityTime" value="0"></td>
+                <td>可获收成:</td>
+                <td><input class="easyui-numberspinner" name="harvestCount" value="0"></td>
+            </tr>
+            <tr>
+                <td>采购价(金币):</td>
+                <td><input class="easyui-numberspinner" name="purchasePrice" precision="2" value="0"></td>
+                <td>果实单价(金币):</td>
+                <td><input class="easyui-numberspinner" name="fruitPrice" precision="2" value="0"></td>
+            </tr>
+            <tr>
+                <td>土地需求:</td>
+                <td>
+                    <select class="easyui-combobox" name="landRequirement" panelHeight="auto">
+                        <option value="黄土地">黄土地</option>
+                        <option value="黑土地">黑土地</option>
+                        <option value="沙土地">沙土地</option>
+                    </select>
+                </td>
+                <td>可获积分:</td>
+                <td><input class="easyui-numberspinner" name="points" value="0"></td>
+            </tr>
+            <tr>
+                <td>提示信息:</td>
+                <td colspan="3">
+                    <input class="easyui-textbox" name="tipInfo" multiline="true" style="width:450px;height:60px;">
+                </td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="formButtons" style="z-index:10001;">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" onclick="saveRecord()">保存</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="$('#formContainer').dialog('close')">取消</a>
+</div>
+
+<!-- 成长阶段窗口 -->
+<div id="growthStageWindow" class="easyui-dialog"
+     data-options="closed:true, modal:true, title:'编辑成长阶段'"
+     style="width:650px; height:500px; z-index:9999;">
+    <table id="growthGrid" class="easyui-datagrid" style="width:100%;height:200px;"
+           data-options="
+               toolbar:'#growthToolbar',
+               rownumbers:true,
+               singleSelect:true
+           ">
+        <thead>
+        <tr>
+            <th data-options="field:'id',width:30">ID</th>
+            <th data-options="field:'stageOrder',width:50">阶段</th>
+            <th data-options="field:'stageTitle',width:80">阶段标题</th>
+            <th data-options="field:'stageDuration',width:80">时长(秒)</th>
+            <th data-options="field:'pestProbability',width:60">生虫概率</th>
+            <th data-options="field:'imageWidth',width:50">宽度</th>
+            <th data-options="field:'imageHeight',width:50">高度</th>
+            <th data-options="field:'imageOffsetX',width:60">offsetX</th>
+            <th data-options="field:'imageOffsetY',width:60">offsetY</th>
+            <th data-options="field:'cropStatus',width:70">状态</th>
+        </tr>
+        </thead>
+    </table>
+
+    <div style="margin-top:10px;padding:10px;border:1px solid #ddd;">
+        <form id="growthForm" method="post">
+            <input type="hidden" name="id">
+            <input type="hidden" name="seedId">
+            <table>
+                <tr>
+                    <td>阶段序号:</td>
+                    <td><input class="easyui-numberspinner" name="stageOrder"></td>
+                    <td>阶段标题:</td>
+                    <td><input class="easyui-textbox" name="stageTitle"></td>
+                </tr>
+                <tr>
+                    <td>时长(秒):</td>
+                    <td><input class="easyui-numberspinner" name="stageDuration"></td>
+                    <td>生虫概率:</td>
+                    <td><input class="easyui-numberspinner" name="pestProbability" precision="2" min="0" max="1"></td>
+                </tr>
+                <tr>
+                    <td>宽度:</td>
+                    <td><input class="easyui-numberspinner" name="imageWidth"></td>
+                    <td>高度:</td>
+                    <td><input class="easyui-numberspinner" name="imageHeight"></td>
+                </tr>
+                <tr>
+                    <td>offsetX:</td>
+                    <td><input class="easyui-numberspinner" name="imageOffsetX"></td>
+                    <td>offsetY:</td>
+                    <td><input class="easyui-numberspinner" name="imageOffsetY"></td>
+                </tr>
+                <tr>
+                    <td>作物状态:</td>
+                    <td>
+                        <select class="easyui-combobox" name="cropStatus">
+                            <option value="种子阶段">种子阶段</option>
+                            <option value="成长阶段">成长阶段</option>
+                            <option value="成熟阶段">成熟阶段</option>
+                            <option value="枯草期">枯草期</option>
+                        </select>
+                    </td>
+                    <td colspan="2">
+                        <a href="javascript:void(0)" class="easyui-linkbutton" onclick="openPositionEditor()">编辑图片位置</a>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+<div id="growthToolbar">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="addGrowthStage()">添加</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-save" plain="true" onclick="saveGrowthStage()">保存</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-remove" plain="true" onclick="deleteGrowthStage()">删除</a>
+</div>
+
+<!-- 定位编辑器 -->
+<div id="positionDialog" class="easyui-dialog"
+     data-options="closed:true, modal:true, title:'定位编辑器', buttons:'#positionButtons'"
+     style="width:500px; height:450px; padding:10px; z-index:10001;">
+    <div style="width:400px;height:350px;overflow:hidden;position:relative;border:1px solid #ccc;margin:0 auto;">
+        <img id="cropImage" class="easyui-draggable easyui-resizable"
+             src="" style="position:absolute; top:0; left:0;">
+    </div>
+</div>
+<div id="positionButtons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" onclick="gainPosition()">确定</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="$('#positionDialog').dialog('close')">取消</a>
+</div>
+
+<script>
+    function navigate(path) {
+        window.location.href = path;
+    }
+
+    // ===== 用户切换相关代码 =====
+    $(function() {
+        // 初始化下拉框
+        $('#userCombo').combobox({
+            valueField: 'nickname',
+            textField: 'nickname',
+            formatter: function(row) {
+                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/default_avatar.png';
+                return '<img class="item-img" src="' + avatarFile + '" />' +
+                    '<span class="item-text">' + row.nickname + '</span>';
+            }
+        });
+
+        // 点击"切换用户"按钮，打开对话框
+        $('#switchUserBtn').bind('click', function() {
+            $.ajax({
+                url: '/player/list',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#userCombo').combobox('clear');
+                    $('#userCombo').combobox('loadData', data);
+                    $('#userSelectDialog').dialog('open');
+                },
+                error: function() {
+                    $.messager.alert('错误', '加载玩家列表失败，请检查网络连接', 'error');
+                }
+            });
+        });
+
+        // 确认切换用户
+        $('#confirmUserBtn').bind('click', function() {
+            var selectedUser = $('#userCombo').combobox('getValue');
+            if (!selectedUser) {
+                $.messager.alert('提示', '请先选择一个角色', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: '/player/findByNickname',
+                type: 'GET',
+                data: { nickname: selectedUser },
+                dataType: 'json',
+                success: function(player) {
+                    if (player) {
+                        $.ajax({
+                            url: '/setCurUser',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(player),
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.code === 0) {
+                                    updateUserPanel(response.data);
+                                    $('#userSelectDialog').dialog('close');
+                                    $.messager.show({ title: '成功', msg: '已切换为：' + response.data.nickname });
+                                } else {
+                                    $.messager.alert('错误', response.msg, 'error');
+                                }
+                            },
+                            error: function() {
+                                $.messager.alert('错误', '服务器通信失败', 'error');
+                            }
+                        });
+                    } else {
+                        $.messager.alert('错误', '未找到该玩家信息', 'error');
+                    }
+                },
+                error: function() {
+                    $.messager.alert('错误', '获取角色信息失败', 'error');
+                }
+            });
+        });
+
+        // 页面加载时获取当前玩家
+        loadCurrentPlayer();
+
+        function updateUserPanel(player) {
+            $('#currentNickname').text(player.nickname);
+            $('#currentExp').text(player.exp);
+            $('#currentGold').text(player.gold);
+            $('#currentPoints').text(player.points);
+            if (player.avatarUrl) {
+                $('#userAvatar').attr('src', player.avatarUrl);
+            } else {
+                $('#userAvatar').attr('src', 'images/default_avatar.png');
+            }
+        }
+
+        function loadCurrentPlayer() {
+            $.ajax({
+                url: '/player/current',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response && response.code === 0 && response.data) {
+                        updateUserPanel(response.data);
+                    }
+                },
+                error: function() {
+                    console.log('未获取到当前玩家');
+                }
+            });
+        }
+    });
+
+    // ==================== 种子管理（原有代码未改动） ====================
+
+    function querySeeds() {
+        var name = $('#searchSeedName').textbox('getValue');
+        $('#seedGrid').datagrid('load', { seedName: name });
+    }
+
+    function actionFormatter(value, row) {
+        return '<a href="javascript:void(0)" onclick="openGrowthStages(' + row.id + ')">成长阶段</a>';
+    }
+
+    function newRecord() {
+        $('#formContainer').dialog('open').dialog('center').dialog('setTitle', '添加数据');
+        $('#formEditor').form('clear');
+        $('#formEditor').find("input[name='id']").val(0);
+    }
+
+    function editRecord() {
+        var row = $('#seedGrid').datagrid('getSelected');
+        if (row) {
+            $('#formContainer').dialog('open').dialog('center').dialog('setTitle', '编辑数据');
+            $('#formEditor').form('load', row);
+        } else {
+            $.messager.show({ title: "消息", msg: "请先选择一行数据！" });
+        }
+    }
+
+    function cancelEdit() {
+        $('#seedGrid').datagrid('rejectChanges');
+    }
+
+    function saveRecord() {
+        $('#formEditor').form('submit', {
+            url: '/seed/save',
+            onSubmit: function() {
+                return $(this).form('validate');
+            },
+            success: function(result) {
+                var data = eval('(' + result + ')');
+                if (data.code == 0) {
+                    $('#formContainer').dialog('close');
+                    $('#seedGrid').datagrid('reload');
+                }
+                $.messager.show({ title: "消息", msg: data.msg });
+            }
+        });
+    }
+
+    function deleteRecord() {
+        var row = $('#seedGrid').datagrid('getSelected');
+        if (row) {
+            $.messager.confirm('确认', '确定要删除该种子吗？', function(r) {
+                if (r) {
+                    $.ajax({
+                        url: '/seed/delete',
+                        type: 'POST',
+                        data: { id: row.id },
+                        success: function(result) {
+                            var data = eval('(' + result + ')');
+                            if (data.code == 0) $('#seedGrid').datagrid('reload');
+                            $.messager.show({ title: "消息", msg: data.msg });
+                        }
+                    });
+                }
+            });
+        } else {
+            $.messager.show({ title: "消息", msg: "请先选择一行数据！" });
+        }
+    }
+
+    function openGrowthStages(seedId) {
+        $('#growthStageWindow').dialog('open').dialog('center');
+        $('#growthGrid').datagrid({
+            url: '/seed/growth/list?seedId=' + seedId,
+            onLoadSuccess: function() {
+                $('#growthForm').find("input[name='seedId']").val(seedId);
+            }
+        });
+        $('#growthForm').find("input[name='seedId']").val(seedId);
+    }
+
+    function addGrowthStage() {
+        $('#growthForm').form('clear');
+        var seedId = $('#growthForm').find("input[name='seedId']").val();
+        $('#growthForm').find("input[name='seedId']").val(seedId);
+        $('#growthForm').find("input[name='id']").val(0);
+    }
+
+    function saveGrowthStage() {
+        $('#growthForm').form('submit', {
+            url: '/seed/growth/save',
+            onSubmit: function() { return $(this).form('validate'); },
+            success: function(result) {
+                var data = eval('(' + result + ')');
+                if (data.code == 0) $('#growthGrid').datagrid('reload');
+                $.messager.show({ title: "消息", msg: data.msg });
+            }
+        });
+    }
+
+    function deleteGrowthStage() {
+        var row = $('#growthGrid').datagrid('getSelected');
+        if (row) {
+            $.messager.confirm('确认', '确定要删除吗？', function(r) {
+                if (r) {
+                    $.ajax({
+                        url: '/seed/growth/delete',
+                        type: 'POST',
+                        data: { id: row.id },
+                        success: function(result) {
+                            var data = eval('(' + result + ')');
+                            if (data.code == 0) $('#growthGrid').datagrid('reload');
+                            $.messager.show({ title: "消息", msg: data.msg });
+                        }
+                    });
+                }
+            });
+        } else {
+            $.messager.show({ title: "消息", msg: "请先选择一行数据！" });
+        }
+    }
+
+    function openPositionEditor() {
+        $('#positionDialog').dialog('open').dialog('center');
+        $('#cropImage').css({
+            width: $('#growthForm').find("input[name='imageWidth']").val() || 97,
+            height: $('#growthForm').find("input[name='imageHeight']").val() || 136,
+            left: $('#growthForm').find("input[name='imageOffsetX']").val() || 53,
+            top: $('#growthForm').find("input[name='imageOffsetY']").val() || 151
+        });
+    }
+
+    function gainPosition() {
+        $('#growthForm').find("input[name='imageWidth']").numberspinner('setValue', $('#cropImage').width());
+        $('#growthForm').find("input[name='imageHeight']").numberspinner('setValue', $('#cropImage').height());
+        $('#growthForm').find("input[name='imageOffsetX']").numberspinner('setValue', parseInt($('#cropImage').css('left')));
+        $('#growthForm').find("input[name='imageOffsetY']").numberspinner('setValue', parseInt($('#cropImage').css('top')));
+        $('#positionDialog').dialog('close');
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>农场管理系统 - 首页</title>
+
+    <!-- EasyUI 核心库 -->
+    <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="https://www.jeasyui.com/easyui/themes/icon.css">
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://www.jeasyui.com/easyui/jquery.easyui.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; }
+
+        .layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* 顶部：水平平铺 不拉伸 */
+        .top-frame {
+            height: 80px;
+            position: relative;
+            background: url("/images/topbar.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+
+        /* 图标按钮组：靠右放置 */
+        .top-buttons {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        /* 图标按钮样式 */
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .icon-btn img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* 中间欢迎区 */
+        .middle-frame {
+            flex: 1;
+            overflow: hidden;
+        }
+        .middle-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* 底部：水平平铺 不拉伸 */
+        .bottom-frame {
+            height: 40px;
+            background: url("/images/bottom.png");
+            background-size: auto 100%;
+        }
+
+        /* 左上角用户信息面板 */
+        .user-panel {
+            position: absolute;
+            top: 10px;
+            left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(245, 245, 245, 0.9);
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            z-index: 10;
+        }
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            object-fit: cover;
+            background-color: #e0e0e0;
+        }
+        .user-info {
+            text-align: left;
+            line-height: 1.5;
+            min-width: 160px;
+        }
+        .item-img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .item-text {
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <div class="top-frame">
+        <!-- 左上角用户信息面板 -->
+        <div class="user-panel" id="userPanel">
+            <img class="user-avatar" id="userAvatar" src="images/default_avatar.png" alt="头像">
+            <div class="user-info">
+                <div><strong id="currentNickname">未知用户</strong></div>
+                <div>
+                    经验：<span id="currentExp">0</span>金币：<span id="currentGold">0</span>积分：<span id="currentPoints">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右上角五个图标按钮 -->
+        <div class="top-buttons">
+            <button class="icon-btn" id="switchUserBtn" title="切换用户">
+                <img src="/images/userSelect.png" alt="切换用户">
+            </button>
+            <button class="icon-btn" onclick="navigate('seed.html')" title="种子">
+                <img src="/images/farmLands.png" alt="种子">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="商店">
+                <img src="/images/buySeed.png" alt="商店">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="仓库">
+                <img src="/images/seedManager.png" alt="仓库">
+            </button>
+            <button class="icon-btn" onclick="navigate('#')" title="图鉴">
+                <img src="/images/userManager.png" alt="图鉴">
+            </button>
+        </div>
+    </div>
+
+    <div class="middle-frame">
+        <img src="/images/welcome.png" alt="欢迎页面" class="middle-img" />
+    </div>
+
+    <div class="bottom-frame"></div>
+</div>
+
+<!-- 用户选择对话框 -->
+<div id="userSelectDialog" class="easyui-dialog" title="用户选择"
+     closed="true" style="width: 400px; padding: 20px; z-index: 9999;"
+     buttons="#dlgUserButtons">
+    <div style="margin-bottom: 15px;">
+        <span style="font-weight: bold;">选择用户：</span>
+        <input id="userCombo" style="width: 200px;">
+    </div>
+    <div style="text-align: center; font-size: 12px; color: #666;">
+        请在下拉框中选择用户昵称，并点击"确认"按钮切换用户。
+    </div>
+</div>
+<div id="dlgUserButtons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" id="confirmUserBtn"
+       data-options="iconCls:'icon-ok'">确认</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton"
+       data-options="iconCls:'icon-cancel'"
+       onclick="$('#userSelectDialog').dialog('close')">取消</a>
+</div>
+
+<script>
+    function navigate(path) {
+        window.location.href = path;
+    }
+
+    $(function() {
+        // 初始化下拉框
+        $('#userCombo').combobox({
+            valueField: 'nickname',
+            textField: 'nickname',
+            formatter: function(row) {
+                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/default_avatar.png';
+                return '<img class="item-img" src="' + avatarFile + '" />' +
+                    '<span class="item-text">' + row.nickname + '</span>';
+            }
+        });
+
+        // 点击"切换用户"按钮，打开对话框
+        $('#switchUserBtn').bind('click', function() {
+            $.ajax({
+                url: '/player/list',
+                type: 'GET',
+                dataType: 'json',
+                success: function(data) {
+                    $('#userCombo').combobox('clear');
+                    $('#userCombo').combobox('loadData', data);
+                    $('#userSelectDialog').dialog('open');
+                },
+                error: function() {
+                    $.messager.alert('错误', '加载玩家列表失败，请检查网络连接', 'error');
+                }
+            });
+        });
+
+        // 确认切换用户
+        $('#confirmUserBtn').bind('click', function() {
+            var selectedUser = $('#userCombo').combobox('getValue');
+            if (!selectedUser) {
+                $.messager.alert('提示', '请先选择一个角色', 'warning');
+                return;
+            }
+
+            $.ajax({
+                url: '/player/findByNickname',
+                type: 'GET',
+                data: { nickname: selectedUser },
+                dataType: 'json',
+                success: function(player) {
+                    if (player) {
+                        $.ajax({
+                            url: '/setCurUser',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(player),
+                            dataType: 'json',
+                            success: function(response) {
+                                if (response.code === 0) {
+                                    updateUserPanel(response.data);
+                                    $('#userSelectDialog').dialog('close');
+                                    $.messager.show({ title: '成功', msg: '已切换为：' + response.data.nickname });
+                                } else {
+                                    $.messager.alert('错误', response.msg, 'error');
+                                }
+                            },
+                            error: function() {
+                                $.messager.alert('错误', '服务器通信失败', 'error');
+                            }
+                        });
+                    } else {
+                        $.messager.alert('错误', '未找到该玩家信息', 'error');
+                    }
+                },
+                error: function() {
+                    $.messager.alert('错误', '获取角色信息失败', 'error');
+                }
+            });
+        });
+
+        // 页面加载时获取当前玩家
+        loadCurrentPlayer();
+
+        function updateUserPanel(player) {
+            $('#currentNickname').text(player.nickname);
+            $('#currentExp').text(player.exp);
+            $('#currentGold').text(player.gold);
+            $('#currentPoints').text(player.points);
+            if (player.avatarUrl) {
+                $('#userAvatar').attr('src', player.avatarUrl);
+            } else {
+                $('#userAvatar').attr('src', 'images/default_avatar.png');
+            }
+        }
+
+        function loadCurrentPlayer() {
+            $.ajax({
+                url: '/player/current',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response && response.code === 0 && response.data) {
+                        updateUserPanel(response.data);
+                    }
+                },
+                error: function() {
+                    console.log('未获取到当前玩家');
+                }
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

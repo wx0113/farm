@@ -28,6 +28,9 @@ public class GrowthStage {
     @Column(name = "pest_probability")
     private BigDecimal pestProbability;
 
+    @Column(name = "image_url")
+    private String imageUrl;
+
     @Column(name = "image_width")
     private Integer imageWidth;
 
@@ -48,6 +51,4 @@ public class GrowthStage {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-
 }

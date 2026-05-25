@@ -143,6 +143,28 @@
             background: url("/images/bottom.png") repeat-x left center;
             background-size: auto 100%;
         }
+
+        #tools-imagePositioner-container {
+            width: 250px;
+            height: 250px;
+            border: 1px solid #ccc;
+            background-color: #f8f8f8;
+            position: relative;
+            overflow: hidden;
+        }
+        #bgImage {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        #selectBox {
+            position: absolute;
+            border: 2px solid red;
+            cursor: move;
+            background: transparent;
+        }
+
         /* 图片定位工具样式 */
         .tools-imagePositioner-display {
             width: 200px; height: 300px; border: 1px solid #ccc;
@@ -239,7 +261,7 @@
                         <th data-options="field:'id',width:40,fixed:true">ID</th>
                         <th data-options="field:'seedId',width:80,align:'center'">种子ID</th>
                         <th data-options="field:'seedName',width:100,align:'center'">种子名称</th>
-                        <th data-options="field:'xSeasonCrop',width:90,align:'center'">X季作物</th>
+                        <th data-options="field:'xseasonCrop',width:90,align:'center'">X季作物</th>
                         <th data-options="field:'seedLevel',width:80,align:'center'">种子等级</th>
                         <th data-options="field:'seedType',width:80,align:'center'">种子类型</th>
                         <th data-options="field:'experience',width:80,align:'center'">可获经验</th>
@@ -335,6 +357,7 @@
                 <form id="stageEditorForm" method="post" novalidate>
                     <input type="hidden" name="id">
                     <input type="hidden" name="seedId" id="stageSeedId">
+                    <input type="hidden" name="cropImage" id="cropImage">
                     <table cellpadding="8">
                         <tr><td>阶段序号:</td><td><input class="easyui-numberspinner" name="stageOrder" data-options="min:0,max:10" style="width:100%"></td></tr>
                         <tr><td>阶段标题:</td><td><input class="easyui-textbox" name="stageTitle" style="width:100%"></td></tr>
@@ -365,9 +388,10 @@
             <!-- 图片位置编辑弹窗 -->
             <div id="positionDialog" class="easyui-dialog" style="width:300px;height:350px;padding:10px" closed="true" buttons="#positionDialogButtons">
                 <div id="tools-imagePositioner-container">
-                    <div id="tools-imagePositioner-display">
-                        <img id="positionImage" src="" style="position:absolute; top:0; left:0; border:2px solid red; cursor:move;">
-                    </div>
+                    <!-- 底层：显示完整大图 -->
+                    <img id="bgImage" style="width:100%; height:100%; object-fit:contain;">
+                    <!-- 上层：红色选择框（浮在图片上） -->
+                    <div id="selectBox" style="border:2px solid red; position:absolute; cursor:move;"></div>
                 </div>
             </div>
             <div id="positionDialogButtons">
@@ -510,24 +534,51 @@
 
     // 保存种子记录（新增/编辑）
     function saveRecord() {
-        if (!$('#formEditor').form('validate')) return;
+        // 第一步：验证表单
+        if (!$('#formEditor').form('validate')) {
+            return;
+        }
+
+        // 第二步：组装数据（绝对不报错版本）
         var formData = {};
-        $('#formEditor').serializeArray().forEach(function(item) {
+        $('#formEditor').serializeArray().forEach(function (item) {
             formData[item.name] = item.value;
         });
+        formData.xseasonCrop = formData.xSeasonCrop;
+
+        // 【真正安全的取值方式】永远不报错！
+        //var xSeasonValue = $('#formEditor [name="xSeasonCrop"]').val();
+        //formData.xseasonCrop = xSeasonValue;  // 提交后端用小写！！！
+
+
+        // 数字类型转换
+        formData.seedLevel = parseInt(formData.seedLevel || 1);
+        formData.experience = parseInt(formData.experience || 0);
+        formData.maturityTime = parseInt(formData.maturityTime || 0);
+        formData.harvestCount = parseInt(formData.harvestCount || 0);
+        formData.purchasePrice = parseFloat(formData.purchasePrice || 0);
+        formData.fruitPrice = parseFloat(formData.fruitPrice || 0);
+        formData.points = parseInt(formData.points || 0);
+        formData.id = formData.id ? parseInt(formData.id) : null;
+
+        // 发送请求
         $.ajax({
-            url: '/seed/save', type: 'POST', contentType: 'application/json',
-            data: JSON.stringify(formData), dataType: 'json',
-            success: function(response) {
+            url: '/seed/save',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function (response) {
                 if (response.code === 0) {
                     $('#formContainer').dialog('close');
                     $('#seedGrid').datagrid('reload');
-                    $.messager.show({ title: '成功', msg: response.msg });
+                    $.messager.show({ title: '成功', msg: '保存成功' });
                 } else {
-                    $.messager.alert('错误', response.msg, 'error');
+                    $.messager.alert('错误', response.msg);
                 }
             },
-            error: function() { $.messager.alert('错误', '保存失败', 'error'); }
+            error: function () {
+                $.messager.alert('错误', '保存失败');
+            }
         });
     }
 
@@ -538,7 +589,9 @@
         $.messager.confirm('确认', '确定要删除【' + row.seedName + '】吗？', function(r) {
             if (r) {
                 $.ajax({
-                    url: '/seed/delete', type: 'POST', data: { id: row.id }, dataType: 'json',
+                    url: '/seed/delete', type: 'POST',
+                    data: { id: row.id },
+                    dataType: 'json',
                     success: function(response) {
                         if (response.code === 0) {
                             $('#seedGrid').datagrid('reload');
@@ -627,7 +680,17 @@
         $('#stageEditorForm').serializeArray().forEach(function(item) {
             formData[item.name] = item.value;
         });
-        formData.seedId = currentSeedId;
+        // 类型转换
+        formData.seedId = parseInt(currentSeedId);
+        formData.stageOrder = parseInt(formData.stageOrder || 0);
+        formData.stageDuration = parseInt(formData.stageDuration || 0);
+        formData.pestProbability = parseFloat(formData.pestProbability || 0);
+        formData.imageWidth = parseInt(formData.imageWidth || 0);
+        formData.imageHeight = parseInt(formData.imageHeight || 0);
+        formData.imageOffsetX = parseInt(formData.imageOffsetX || 0);
+        formData.imageOffsetY = parseInt(formData.imageOffsetY || 0);
+        formData.id = formData.id ? parseInt(formData.id) : null;
+
         $.ajax({
             url: '/seed/growth/save', type: 'POST', contentType: 'application/json',
             data: JSON.stringify(formData), dataType: 'json',
@@ -673,27 +736,107 @@
 
     // 打开图片位置编辑弹窗
     function openImagePositioner() {
-        var img = $('#positionImage');
-        var imageUrl = $('input[name="imageUrl"]').val() || '';
-        img.attr('src', imageUrl);
-        img.css({
-            width: parseInt($('input[name="imageWidth"]').val()) || 64,
-            height: parseInt($('input[name="imageHeight"]').val()) || 64,
-            left: parseInt($('input[name="imageOffsetX"]').val()) || 0,
-            top: parseInt($('input[name="imageOffsetY"]').val()) || 0
+        var imageUrl = $('#stageEditorForm input[name="imageUrl"]').val();
+        if (!imageUrl) {
+            $.messager.alert('提示', '请先填写图片路径！');
+            return;
+        }
+
+        // 设置背景大图
+        $('#bgImage').attr('src', '/'+ imageUrl + "?t=" + new Date().getTime());
+
+        // 读取表单里的宽高和偏移
+        var w = parseInt($('input[name="imageWidth"]').val()) || 80;
+        var h = parseInt($('input[name="imageHeight"]').val()) || 80;
+        var x = parseInt($('input[name="imageOffsetX"]').val()) || 50;
+        var y = parseInt($('input[name="imageOffsetY"]').val()) || 50;
+
+        // 设置红框
+        $('#selectBox').css({
+            width: w,
+            height: h,
+            left: x,
+            top: y
         });
+
+        // 允许拖拽红框
+        $('#selectBox').draggable({
+            containment: 'parent'
+        });
+
         $('#positionDialog').dialog('open').dialog('center');
     }
 
-    // 获取图片位置并回填表单
+
+    // 确定裁剪 → 截图 → 上传 → 保存路径
     function gainPostion() {
-        var img = $('#positionImage');
-        $('input[name="imageWidth"]').numberspinner('setValue', img.width());
-        $('input[name="imageHeight"]').numberspinner('setValue', img.height());
-        $('input[name="imageOffsetX"]').numberspinner('setValue', parseInt(img.css('left')));
-        $('input[name="imageOffsetY"]').numberspinner('setValue', parseInt(img.css('top')));
+        var box = $('#selectBox');
+        var container = $('#tools-imagePositioner-container');
+        var bgImg = $('#bgImage')[0];
+
+        // 1. 获取红框位置和大小
+        var x = parseInt(box.css('left'));
+        var y = parseInt(box.css('top'));
+        var w = box.width();
+        var h = box.height();
+
+        // 2. 回填位置信息（原来的功能保留）
+        $('input[name="imageWidth"]').numberspinner('setValue', w);
+        $('input[name="imageHeight"]').numberspinner('setValue', h);
+        $('input[name="imageOffsetX"]').numberspinner('setValue', x);
+        $('input[name="imageOffsetY"]').numberspinner('setValue', y);
+
+        // 3. 创建画布进行裁剪
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+
+        // 计算图片真实缩放比例
+        var imgW = bgImg.naturalWidth;
+        var imgH = bgImg.naturalHeight;
+        var containerW = container.width();
+        var containerH = container.height();
+
+        var scaleX = imgW / containerW;
+        var scaleY = imgH / containerH;
+
+        // 绘制裁剪区域
+        ctx.drawImage(
+            bgImg,
+            x * scaleX,
+            y * scaleY,
+            w * scaleX,
+            h * scaleY,
+            0, 0, w, h
+        );
+
+        // 4. 转成Blob上传
+        canvas.toBlob(function (blob) {
+            var formData = new FormData();
+            formData.append('image', blob, 'cropped.png');
+
+            // 5. 上传到后端接口
+            $.ajax({
+                url: '/seed/growth/cropImage',
+                type: 'POST',
+                data: formData,
+                contentType: false,
+                processData: false,
+                success: function (res) {
+                    if (res.code === 0) {
+                        // 把裁剪后的图片路径 写入表单
+                        $('input[name="cropImage"]').val(res.data);
+                        $.messager.show({ title: '成功', msg: '裁剪图片已保存' });
+                    }
+                },
+                error: function () {
+                    $.messager.alert('错误', '上传失败');
+                }
+            });
+        }, 'image/png');
+
         $('#positionDialog').dialog('close');
-        $.messager.show({ title: '完成', msg: '图片尺寸和偏移已回填' });
     }
 </script>
 </body>

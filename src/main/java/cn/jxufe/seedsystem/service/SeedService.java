@@ -26,6 +26,11 @@ public class SeedService {
     @Autowired
     private GrowthStageRepository growthStageRepository;
 
+    // ====================== 【修复】新增：根据 seedId 查询 ======================
+    public List<Seed> searchBySeedId(String seedId) {
+        return seedRepository.findBySeedId(seedId);
+    }
+
     public List<Seed> querySeeds(String seedName, int page, int rows) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Seed> query = cb.createQuery(Seed.class);

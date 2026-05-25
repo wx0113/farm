@@ -1,12 +1,9 @@
 package cn.jxufe.seedsystem.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-
 
 @Entity
 @Table(name = "seed")
@@ -60,5 +57,4 @@ public class Seed {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
 }

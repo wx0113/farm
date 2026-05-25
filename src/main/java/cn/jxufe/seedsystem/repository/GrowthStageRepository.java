@@ -9,7 +9,9 @@ import java.util.List;
 @Repository
 public interface GrowthStageRepository extends JpaRepository<GrowthStage, Integer> {
 
+    // 根据种子ID查询成长阶段，并按阶段序号排序
     List<GrowthStage> findBySeedIdOrderByStageOrder(Integer seedId);
 
+    // 根据种子ID删除所有阶段（级联删除）
     void deleteBySeedId(Integer seedId);
 }

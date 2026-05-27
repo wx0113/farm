@@ -1,11 +1,13 @@
 package cn.jxufe.seedsystem.controller;
 
 import cn.jxufe.seedsystem.entity.GrowthStage;
+import cn.jxufe.seedsystem.entity.Result;
 import cn.jxufe.seedsystem.entity.Seed;
 import cn.jxufe.seedsystem.service.SeedService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
 import java.util.List;
@@ -137,19 +139,29 @@ public class SeedController {
         return result;
     }
 
-    @PostMapping("/seed/growth/cropImage")
-    public Result<String> cropImage(@RequestParam("image") MultipartFile file) {
+    @PostMapping("/growth/cropImage")
+    @ResponseBody
+    public Result<String> cropImage(@RequestParam("image") MultipartFile file,
+                                    @RequestParam(value = "oldPath", required = false) String oldPath) {
         try {
             String path = System.getProperty("user.dir") + "/src/main/resources/static/crops/";
             java.io.File dir = new java.io.File(path);
             if (!dir.exists()) dir.mkdirs();
+
+            // 覆盖：删除旧文件
+            if (oldPath != null && !oldPath.isEmpty()) {
+                java.io.File oldFile = new java.io.File(path + oldPath.replace("/crops/", ""));
+                if (oldFile.exists()) {
+                    oldFile.delete();
+                }
+            }
 
             String fileName = java.util.UUID.randomUUID() + ".png";
             file.transferTo(new java.io.File(dir, fileName));
 
             return Result.success("/crops/" + fileName);
         } catch (Exception e) {
-            return Result.error("裁剪图片保存失败");
+            return Result.error("裁剪图片保存失败：" + e.getMessage());
         }
     }
 }

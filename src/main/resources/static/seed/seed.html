@@ -26,15 +26,19 @@
         /* 表格容器样式 */
         .seed-container {
             width: 98%; height: 98%;
+            display: flex; flex-direction: column;
             box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            background: rgba(255,255,255,0.9);
+            background: #e8f5e9;
             border-radius: 4px;
-            border: 1px solid #c8e6c9;
-            padding: 0;
-        }
-        .seed-container > div[region="center"] {
+            border: 1px solid #a5d6a7;
             padding: 10px;
-            height: calc(100% - 50px);
+        }
+        .seed-header {
+            flex-shrink: 0;
+        }
+        .seed-grid-wrapper {
+            flex: 1;
+            min-height: 0;
         }
         h2 {
             color: #333;
@@ -46,43 +50,35 @@
             background: #2d6a2d;
             border-radius: 4px 4px 0 0;
             margin: 0;
+            flex-shrink: 0;
         }
-
-        /* 数据表格样式 */
-        #seedGrid {
-            width: 100% !important;
-            height: calc(100% - 60px) !important;
-        }
-        /* 表头样式 */
-        #seedGrid .datagrid-header-row td {
-            background: #2d6a2d !important;
+        /* 所有 datagrid 表头统一样式 */
+        .datagrid-header-row td {
+            background: #388e3c !important;
             color: #fff !important;
             font-weight: bold;
-            border-right: 1px solid #1a4d1a;
+            border-right: 1px solid #2e7d32 !important;
         }
-        /* 表格行基础样式 */
+        /* 表格行基础底色 - 淡绿 */
         .datagrid-row td {
-            background: transparent !important;
-            color: #000 !important;
+            background: #f1f8e9 !important;
+            color: #333 !important;
         }
-        /* 奇偶行背景色 */
-        .datagrid-row[datagrid-row-index$="1"],
-        .datagrid-row[datagrid-row-index$="3"],
-        .datagrid-row[datagrid-row-index$="5"],
-        .datagrid-row[datagrid-row-index$="7"],
-        .datagrid-row[datagrid-row-index$="9"] {
-            background: rgba(22, 230, 83, 0.12) !important;
+        /* 偶数行用另一种淡绿区分 */
+        .datagrid-row:nth-child(even) td {
+            background: #e8f5e9 !important;
         }
-        .datagrid-row[datagrid-row-index$="0"],
-        .datagrid-row[datagrid-row-index$="2"],
-        .datagrid-row[datagrid-row-index$="4"],
-        .datagrid-row[datagrid-row-index$="6"],
-        .datagrid-row[datagrid-row-index$="8"] {
-            background: rgba(236, 213, 57, 0.25) !important;
+        /* 选中行高亮 - 淡黄色 */
+        .datagrid-row.datagrid-row-selected {
+            background: #fff9c4 !important;
         }
-        /* 行悬浮样式 */
-        .datagrid-row:hover {
-            background: rgba(76, 175, 80, 0.45) !important;
+        .datagrid-row.datagrid-row-selected td {
+            background: #fff9c4 !important;
+            color: #333 !important;
+        }
+        /* 行悬浮 - 稍深绿色 */
+        .datagrid-row:hover td {
+            background: #c8e6c9 !important;
         }
         /* 分页栏样式 */
         #seedGrid .datagrid-pager {
@@ -108,8 +104,8 @@
         .user-panel {
             position: absolute; top: 10px; left: 20px; display: flex;
             align-items: center; gap: 10px;
-            background: rgba(245, 245, 245, 0.9); padding: 8px 15px;
-            border-radius: 8px; border: 1px solid #ddd; z-index: 10;
+            background: rgba(232, 245, 233, 0.95); padding: 8px 15px;
+            border-radius: 8px; border: 1px solid #a5d6a7; z-index: 10;
         }
         .user-avatar {
             width: 48px; height: 48px; border-radius: 50%;
@@ -144,11 +140,29 @@
             background-size: auto 100%;
         }
 
+        /* EasyUI 弹窗和面板 - 绿色标题栏 */
+        .panel-header {
+            background: #388e3c !important;
+            border-color: #2e7d32 !important;
+        }
+        .panel-title {
+            color: #fff !important;
+        }
+        .panel-tool {
+            color: #fff !important;
+        }
+        .window {
+            border-color: #a5d6a7 !important;
+        }
+        .window .window-body {
+            background: #f1f8e9 !important;
+        }
+
         #tools-imagePositioner-container {
             width: 250px;
             height: 250px;
-            border: 1px solid #ccc;
-            background-color: #f8f8f8;
+            border: 1px solid #a5d6a7;
+            background-color: #e8f5e9;
             position: relative;
             overflow: hidden;
         }
@@ -176,6 +190,21 @@
             padding: 2px 6px; width: 160px; border: 1px solid #ccc;
             border-radius: 3px; font-size: 12px; outline: none;
         }
+        /* 成长阶段按钮样式 */
+        .stage-btn {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #43a047;
+            color: #fff !important;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        .stage-btn:hover {
+            background: #2e7d32;
+            color: #fff !important;
+        }
         /* 工具栏分隔符 */
         .toolbar-separator {
             display: inline-block; width: 1px; height: 24px;
@@ -184,13 +213,6 @@
         /* 表格单元格自动换行 */
         .datagrid-cell { white-space: normal !important; word-wrap: break-word !important; word-break: break-word !important; height: auto !important; }
         .datagrid-cell-c1-tips { padding: 6px 10px !important; }
-        /* 图片定位容器 */
-        #tools-imagePositioner-container {
-            width: 200px; height: 200px; border: 1px solid #ccc;
-            background-color: #f8f8f8; position: relative; overflow: hidden;
-        }
-        #tools-imagePositioner-display { width: 100%; height: 100%; position: relative; }
-        #positionImage { position: absolute; border: 2px solid red; cursor: move; }
     </style>
 </head>
 <body>
@@ -226,56 +248,27 @@
     <!-- 中间内容区 -->
     <div class="middle-frame">
         <div class="seed-container">
-            <div region="center" style="padding:10px;height:calc(100% - 50px);">
+            <div class="seed-header">
                 <h2>种子清单</h2>
-                <!-- 操作工具栏 -->
-                <div id="toolbar">
-                    <span style="display:inline-block;vertical-align:middle;margin-right:10px;">
-                        <label style="font-size:12px;color:#f4f4f4;">按种子ID筛选：</label>
-                        <input class="search-box" id="searchId" placeholder="例如：S001" />
-                        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="searchById()" style="margin-left:3px;">查询</a>
-                        <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-clear" plain="true" onclick="clearSearch()" style="margin-left:3px;">清空</a>
-                    </span>
-                    <span class="toolbar-separator"></span>
-                    <a href="javascript:void(0)" class="easyui-linkbutton btn-add" iconCls="icon-add" plain="true" onclick="newRecord()">添加</a>
-                    <a href="javascript:void(0)" class="easyui-linkbutton btn-edit" iconCls="icon-edit" plain="true" onclick="editRow()">编辑</a>
-                    <a href="javascript:void(0)" class="easyui-linkbutton btn-delete" iconCls="icon-remove" plain="true" onclick="deleteRow()">删除</a>
-                    <a href="javascript:void(0)" class="easyui-linkbutton btn-save" iconCls="icon-save" plain="true" onclick="saveAllEdits()">保存</a>
-                    <a href="javascript:void(0)" class="easyui-linkbutton btn-refresh" iconCls="icon-reload" plain="true" onclick="refreshData()">刷新</a>
-                </div>
-
-                <!-- 种子数据表格 -->
-                <table id="seedGrid" class="easyui-datagrid"
-                       data-options="
-                           url:'/seed/query',
-                           fitColumns:true,
-                           rownumbers:true,
-                           singleSelect:true,
-                           pagination:true,
-                           pageSize:10,
-                           pageList:[5,10,15],
-                           method:'get'
-                       ">
-                    <thead>
-                    <tr>
-                        <th data-options="field:'id',width:40,fixed:true">ID</th>
-                        <th data-options="field:'seedId',width:80,align:'center'">种子ID</th>
-                        <th data-options="field:'seedName',width:100,align:'center'">种子名称</th>
-                        <th data-options="field:'xseasonCrop',width:90,align:'center'">X季作物</th>
-                        <th data-options="field:'seedLevel',width:80,align:'center'">种子等级</th>
-                        <th data-options="field:'seedType',width:80,align:'center'">种子类型</th>
-                        <th data-options="field:'experience',width:80,align:'center'">可获经验</th>
-                        <th data-options="field:'maturityTime',width:120,align:'center',formatter:formatSeconds">成熟时间</th>
-                        <th data-options="field:'harvestCount',width:100,align:'center'">可获收成</th>
-                        <th data-options="field:'purchasePrice',width:100,align:'center',formatter:formatPrice">采购价</th>
-                        <th data-options="field:'fruitPrice',width:100,align:'center',formatter:formatPrice">果实单价</th>
-                        <th data-options="field:'landRequirement',width:80,align:'center'">土地需求</th>
-                        <th data-options="field:'points',width:100,align:'center',formatter:formatPoints">可获积分</th>
-                        <th data-options="field:'tipInfo',width:200,align:'center'">小贴士</th>
-                        <th data-options="field:'action',width:80,align:'center',formatter:actionFormatter">操作</th>
-                    </tr>
-                    </thead>
-                </table>
+            </div>
+            <!-- 操作工具栏 -->
+            <div id="toolbar">
+                <span style="display:inline-block;vertical-align:middle;margin-right:10px;">
+                    <label style="font-size:12px;color:#f4f4f4;">按种子ID筛选：</label>
+                    <input class="search-box" id="searchId" placeholder="例如：S001" />
+                    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="searchById()" style="margin-left:3px;">查询</a>
+                    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-clear" plain="true" onclick="clearSearch()" style="margin-left:3px;">清空</a>
+                </span>
+                <span class="toolbar-separator"></span>
+                <a href="javascript:void(0)" class="easyui-linkbutton btn-add" iconCls="icon-add" plain="true" onclick="newRecord()">添加</a>
+                <a href="javascript:void(0)" class="easyui-linkbutton btn-edit" iconCls="icon-edit" plain="true" onclick="editRow()">编辑</a>
+                <a href="javascript:void(0)" class="easyui-linkbutton btn-delete" iconCls="icon-remove" plain="true" onclick="deleteRow()">删除</a>
+                <a href="javascript:void(0)" class="easyui-linkbutton btn-save" iconCls="icon-save" plain="true" onclick="saveAllEdits()">保存</a>
+                <a href="javascript:void(0)" class="easyui-linkbutton btn-refresh" iconCls="icon-reload" plain="true" onclick="refreshData()">刷新</a>
+            </div>
+            <!-- 种子数据表格 -->
+            <div class="seed-grid-wrapper">
+                <table id="seedGrid"></table>
             </div>
 
             <!-- 种子编辑弹窗 -->
@@ -386,17 +379,17 @@
             </div>
 
             <!-- 图片位置编辑弹窗 -->
-            <div id="positionDialog" class="easyui-dialog" style="width:300px;height:350px;padding:10px" closed="true" buttons="#positionDialogButtons">
+            <div id="positionDialog" class="easyui-dialog" style="width:300px;height:380px;padding:10px" closed="true">
                 <div id="tools-imagePositioner-container">
                     <!-- 底层：显示完整大图 -->
                     <img id="bgImage" style="width:100%; height:100%; object-fit:contain;">
                     <!-- 上层：红色选择框（浮在图片上） -->
                     <div id="selectBox" style="border:2px solid red; position:absolute; cursor:move;"></div>
                 </div>
-            </div>
-            <div id="positionDialogButtons">
-                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" onclick="gainPostion()">确定</a>
-                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" onclick="$('#positionDialog').dialog('close')">取消</a>
+                <div style="text-align:center;padding-top:12px;">
+                    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" id="btnCropConfirm">确定</a>
+                    <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-cancel" id="btnCropCancel">取消</a>
+                </div>
             </div>
         </div>
     </div>
@@ -439,9 +432,9 @@
         return value != null && value !== '' ? parseInt(value) + ' 分' : '0 分';
     }
 
-    // 操作列格式化函数（成长阶段按钮）
+    // 操作列格式化函数（成长阶段按钮样式）
     function actionFormatter(value, row) {
-        return '<a href="javascript:void(0)" onclick="openGrowthStages(' + row.id + ')">成长阶段</a>';
+        return '<a href="javascript:void(0)" class="stage-btn" onclick="openGrowthStages(' + row.id + ')">成长阶段</a>';
     }
 
     // 页面初始化
@@ -494,9 +487,123 @@
         // 加载当前登录用户信息
         loadCurrentPlayer();
 
-        // 初始化图片拖拽调整
-        $('#positionImage').draggable().resizable({ handles: "all" });
+        // 绑定图片位置弹窗的按钮事件
+        $('#btnCropConfirm').bind('click', function() { gainPostion(); });
+        $('#btnCropCancel').bind('click', function() { $('#positionDialog').dialog('close'); });
+
+        // 初始化种子数据表格
+        initSeedGrid();
+
+        // 点击表格外部时退出编辑模式
+        $(document).on('click', function(e) {
+            if (editingRowIndex !== null) {
+                var $target = $(e.target);
+                if ($target.closest('#seedGrid').length === 0) {
+                    $('#seedGrid').datagrid('endEdit', editingRowIndex);
+                }
+            }
+        });
+
+        // 窗口大小变化时重新调整表格高度
+        $(window).resize(function() {
+            var h = $('.seed-grid-wrapper').height();
+            if (h > 0) {
+                $('#seedGrid').datagrid('resize', { height: h });
+            }
+        });
     });
+
+    var editingRowIndex = null;
+
+    function initSeedGrid() {
+        var gridHeight = $('.seed-grid-wrapper').height();
+        $('#seedGrid').datagrid({
+            url: '/seed/query',
+            fitColumns: true,
+            rownumbers: true,
+            singleSelect: true,
+            pagination: true,
+            pageSize: 10,
+            pageList: [5, 10, 15],
+            method: 'get',
+            height: gridHeight || 400,
+            // 单击行 → 退出之前的编辑（如果点的是其他行）
+            onClickRow: function(index) {
+                if (editingRowIndex !== null && editingRowIndex !== index) {
+                    $('#seedGrid').datagrid('endEdit', editingRowIndex);
+                }
+            },
+            // 双击单元格 → 进入编辑模式
+            onDblClickCell: function(index, field) {
+                if (field === 'id' || field === 'action') return;
+                if (editingRowIndex !== null && editingRowIndex !== index) {
+                    $('#seedGrid').datagrid('endEdit', editingRowIndex);
+                }
+                $('#seedGrid').datagrid('beginEdit', index);
+                editingRowIndex = index;
+            },
+            // 编辑结束（点其他地方）→ 自动保存到数据库
+            onAfterEdit: function(index, row) {
+                editingRowIndex = null;
+                $.ajax({
+                    url: '/seed/save',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(row),
+                    dataType: 'json',
+                    success: function(res) {
+                        if (res.code === 0) {
+                            $.messager.show({ title: '已保存', msg: row.seedName + ' 已更新' });
+                        } else {
+                            $.messager.alert('错误', res.msg);
+                        }
+                    },
+                    error: function() {
+                        $.messager.alert('错误', '保存失败');
+                    }
+                });
+            },
+            columns: [[
+                { field: 'id', title: 'ID', width: 40 },
+                { field: 'seedId', title: '种子ID', width: 80, align: 'center',
+                  editor: { type: 'textbox', options: { required: true } } },
+                { field: 'seedName', title: '种子名称', width: 100, align: 'center',
+                  editor: { type: 'textbox', options: { required: true } } },
+                { field: 'xseasonCrop', title: 'X季作物', width: 90, align: 'center',
+                  editor: { type: 'combobox', options: {
+                      data: [{value:'1季作物',text:'1季作物'},{value:'2季作物',text:'2季作物'},{value:'3季作物',text:'3季作物'}],
+                      valueField:'value', textField:'text', panelHeight:'auto' } } },
+                { field: 'seedLevel', title: '种子等级', width: 80, align: 'center',
+                  editor: { type: 'numberspinner', options: { min: 1, max: 100 } } },
+                { field: 'seedType', title: '种子类型', width: 80, align: 'center',
+                  editor: { type: 'combobox', options: {
+                      data: [{value:'水果',text:'水果'},{value:'蔬菜',text:'蔬菜'},{value:'谷物',text:'谷物'}],
+                      valueField:'value', textField:'text', panelHeight:'auto' } } },
+                { field: 'experience', title: '可获经验', width: 80, align: 'center',
+                  editor: { type: 'numberspinner', options: { min: 0 } } },
+                { field: 'maturityTime', title: '成熟时间', width: 120, align: 'center', formatter: formatSeconds,
+                  editor: { type: 'numberspinner', options: { min: 0 } } },
+                { field: 'harvestCount', title: '可获收成', width: 100, align: 'center',
+                  editor: { type: 'numberspinner', options: { min: 0 } } },
+                { field: 'purchasePrice', title: '采购价', width: 100, align: 'center', formatter: formatPrice,
+                  editor: { type: 'numberbox', options: { precision: 2, min: 0 } } },
+                { field: 'fruitPrice', title: '果实单价', width: 100, align: 'center', formatter: formatPrice,
+                  editor: { type: 'numberbox', options: { precision: 2, min: 0 } } },
+                { field: 'landRequirement', title: '土地需求', width: 80, align: 'center',
+                  editor: { type: 'combobox', options: {
+                      data: [{value:'黄土地',text:'黄土地'},{value:'黑土地',text:'黑土地'},{value:'沙土地',text:'沙土地'}],
+                      valueField:'value', textField:'text', panelHeight:'auto' } } },
+                { field: 'points', title: '可获积分', width: 100, align: 'center', formatter: formatPoints,
+                  editor: { type: 'numberspinner', options: { min: 0 } } },
+                { field: 'tipInfo', title: '小贴士', width: 200, align: 'center',
+                  editor: { type: 'textbox', options: { multiline: true, height: 50 } } },
+                { field: 'action', title: '操作', width: 80, align: 'center', formatter: actionFormatter }
+            ]],
+            onLoadError: function() {
+                $.messager.alert('错误', '加载种子数据失败');
+            }
+        });
+    }
 
     // 更新用户面板信息
     function updateUserPanel(player) {
@@ -746,10 +853,10 @@
         $('#bgImage').attr('src', '/'+ imageUrl + "?t=" + new Date().getTime());
 
         // 读取表单里的宽高和偏移
-        var w = parseInt($('input[name="imageWidth"]').val()) || 80;
-        var h = parseInt($('input[name="imageHeight"]').val()) || 80;
-        var x = parseInt($('input[name="imageOffsetX"]').val()) || 50;
-        var y = parseInt($('input[name="imageOffsetY"]').val()) || 50;
+        var w = parseInt($('#stageEditorForm input[name="imageWidth"]').val()) || 80;
+        var h = parseInt($('#stageEditorForm input[name="imageHeight"]').val()) || 80;
+        var x = parseInt($('#stageEditorForm input[name="imageOffsetX"]').val()) || 50;
+        var y = parseInt($('#stageEditorForm input[name="imageOffsetY"]').val()) || 50;
 
         // 设置红框
         $('#selectBox').css({
@@ -780,11 +887,16 @@
         var w = box.width();
         var h = box.height();
 
-        // 2. 回填位置信息（原来的功能保留）
-        $('input[name="imageWidth"]').numberspinner('setValue', w);
-        $('input[name="imageHeight"]').numberspinner('setValue', h);
-        $('input[name="imageOffsetX"]').numberspinner('setValue', x);
-        $('input[name="imageOffsetY"]').numberspinner('setValue', y);
+        if (w <= 0 || h <= 0) {
+            $.messager.alert('错误', '裁剪区域无效，请重新拖拽红框');
+            return;
+        }
+
+        // 2. 回填位置信息
+        $('#stageEditorForm input[name="imageWidth"]').val(w);
+        $('#stageEditorForm input[name="imageHeight"]').val(h);
+        $('#stageEditorForm input[name="imageOffsetX"]').val(x);
+        $('#stageEditorForm input[name="imageOffsetY"]').val(y);
 
         // 3. 创建画布进行裁剪
         var canvas = document.createElement('canvas');
@@ -792,7 +904,6 @@
         canvas.height = h;
         var ctx = canvas.getContext('2d');
 
-        // 计算图片真实缩放比例
         var imgW = bgImg.naturalWidth;
         var imgH = bgImg.naturalHeight;
         var containerW = container.width();
@@ -801,42 +912,48 @@
         var scaleX = imgW / containerW;
         var scaleY = imgH / containerH;
 
-        // 绘制裁剪区域
-        ctx.drawImage(
-            bgImg,
-            x * scaleX,
-            y * scaleY,
-            w * scaleX,
-            h * scaleY,
-            0, 0, w, h
-        );
+        ctx.drawImage(bgImg,
+            x * scaleX, y * scaleY,
+            w * scaleX, h * scaleY,
+            0, 0, w, h);
 
-        // 4. 转成Blob上传
-        canvas.toBlob(function (blob) {
-            var formData = new FormData();
-            formData.append('image', blob, 'cropped.png');
+        // 4. Canvas → DataURL → Blob（比 toBlob 更可靠）
+        var dataURL = canvas.toDataURL('image/png');
+        var binaryStr = atob(dataURL.split(',')[1]);
+        var byteArray = new Uint8Array(binaryStr.length);
+        for (var i = 0; i < binaryStr.length; i++) {
+            byteArray[i] = binaryStr.charCodeAt(i);
+        }
+        var blob = new Blob([byteArray], { type: 'image/png' });
 
-            // 5. 上传到后端接口
-            $.ajax({
-                url: '/seed/growth/cropImage',
-                type: 'POST',
-                data: formData,
-                contentType: false,
-                processData: false,
-                success: function (res) {
-                    if (res.code === 0) {
-                        // 把裁剪后的图片路径 写入表单
-                        $('input[name="cropImage"]').val(res.data);
-                        $.messager.show({ title: '成功', msg: '裁剪图片已保存' });
-                    }
-                },
-                error: function () {
-                    $.messager.alert('错误', '上传失败');
+        // 5. 上传到后端（传旧文件路径以便覆盖）
+        var formData = new FormData();
+        formData.append('image', blob, 'cropped.png');
+        var oldPath = $('#stageEditorForm input[name="cropImage"]').val();
+        if (oldPath) {
+            formData.append('oldPath', oldPath);
+        }
+
+        $.ajax({
+            url: '/seed/growth/cropImage',
+            type: 'POST',
+            data: formData,
+            contentType: false,
+            processData: false,
+            success: function (res) {
+                if (res.code === 0) {
+                    $('#stageEditorForm input[name="cropImage"]').val(res.data);
+                    $.messager.show({ title: '成功', msg: '裁剪图片已保存' });
+                } else {
+                    $.messager.alert('错误', res.msg || '上传失败');
                 }
-            });
-        }, 'image/png');
-
-        $('#positionDialog').dialog('close');
+                $('#positionDialog').dialog('close');
+            },
+            error: function () {
+                $.messager.alert('错误', '上传失败');
+                $('#positionDialog').dialog('close');
+            }
+        });
     }
 </script>
 </body>

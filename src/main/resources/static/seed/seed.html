@@ -28,9 +28,9 @@
             width: 98%; height: 98%;
             display: flex; flex-direction: column;
             box-shadow: 0 0 8px rgba(0,0,0,0.1);
-            background: #e8f5e9;
+            background: #a5d6a7;
             border-radius: 4px;
-            border: 1px solid #a5d6a7;
+            border: 1px solid #66bb6a;
             padding: 10px;
         }
         .seed-header {
@@ -47,26 +47,33 @@
         }
         #toolbar {
             padding: 8px;
-            background: #2d6a2d;
+            background: #1b5e20;
             border-radius: 4px 4px 0 0;
             margin: 0;
             flex-shrink: 0;
         }
         /* 所有 datagrid 表头统一样式 */
         .datagrid-header-row td {
-            background: #388e3c !important;
+            background: #1b5e20 !important;
             color: #fff !important;
             font-weight: bold;
             border-right: 1px solid #2e7d32 !important;
         }
-        /* 表格行基础底色 - 淡绿 */
+        /* 分页栏 */
+        .datagrid-pager {
+            background: #2e7d32 !important;
+        }
+        .datagrid-pager a {
+            color: #fff !important;
+        }
+        /* 表格行基础底色 */
         .datagrid-row td {
-            background: #f1f8e9 !important;
+            background: #c8e6c9 !important;
             color: #333 !important;
         }
-        /* 偶数行用另一种淡绿区分 */
+        /* 偶数行用另一种绿区分 */
         .datagrid-row:nth-child(even) td {
-            background: #e8f5e9 !important;
+            background: #a5d6a7 !important;
         }
         /* 选中行高亮 - 淡黄色 */
         .datagrid-row.datagrid-row-selected {
@@ -76,18 +83,10 @@
             background: #fff9c4 !important;
             color: #333 !important;
         }
-        /* 行悬浮 - 稍深绿色 */
+        /* 行悬浮 - 更深绿 */
         .datagrid-row:hover td {
-            background: #c8e6c9 !important;
+            background: #81c784 !important;
         }
-        /* 分页栏样式 */
-        #seedGrid .datagrid-pager {
-            background: #2d6a2d !important;
-        }
-        #seedGrid .datagrid-pager a {
-            color: #fff !important;
-        }
-
         /* 整体布局样式 */
         .layout {
             display: flex; flex-direction: column; height: 100vh;
@@ -104,8 +103,8 @@
         .user-panel {
             position: absolute; top: 10px; left: 20px; display: flex;
             align-items: center; gap: 10px;
-            background: rgba(232, 245, 233, 0.95); padding: 8px 15px;
-            border-radius: 8px; border: 1px solid #a5d6a7; z-index: 10;
+            background: rgba(165, 214, 167, 0.95); padding: 8px 15px;
+            border-radius: 8px; border: 1px solid #66bb6a; z-index: 10;
         }
         .user-avatar {
             width: 48px; height: 48px; border-radius: 50%;
@@ -140,9 +139,9 @@
             background-size: auto 100%;
         }
 
-        /* EasyUI 弹窗和面板 - 绿色标题栏 */
+        /* EasyUI 弹窗和面板 - 深绿标题栏 */
         .panel-header {
-            background: #388e3c !important;
+            background: #1b5e20 !important;
             border-color: #2e7d32 !important;
         }
         .panel-title {
@@ -152,39 +151,40 @@
             color: #fff !important;
         }
         .window {
-            border-color: #a5d6a7 !important;
+            border-color: #66bb6a !important;
         }
         .window .window-body {
-            background: #f1f8e9 !important;
+            background: #c8e6c9 !important;
         }
 
         #tools-imagePositioner-container {
-            width: 250px;
-            height: 250px;
-            border: 1px solid #a5d6a7;
-            background-color: #e8f5e9;
+            width: 480px;
+            height: 440px;
+            border: 1px solid #66bb6a;
+            background-color: #c8e6c9;
             position: relative;
             overflow: hidden;
         }
-        #bgImage {
+        #positionBg {
             display: block;
             width: 100%;
             height: 100%;
             object-fit: contain;
         }
-        #selectBox {
+        #stageOverlay {
             position: absolute;
-            border: 2px solid red;
             cursor: move;
-            background: transparent;
+            z-index: 10;
+            border: 2px dashed #ff0000;
+            box-shadow: 0 0 6px rgba(255,0,0,0.5);
         }
-
         /* 图片定位工具样式 */
         .tools-imagePositioner-display {
             width: 200px; height: 300px; border: 1px solid #ccc;
             overflow: hidden; margin-bottom: 10px;
         }
         .tools-imagePositioner-display img { width: 100%; height: auto; }
+
         /* 搜索框样式 */
         .search-box {
             padding: 2px 6px; width: 160px; border: 1px solid #ccc;
@@ -379,12 +379,12 @@
             </div>
 
             <!-- 图片位置编辑弹窗 -->
-            <div id="positionDialog" class="easyui-dialog" style="width:300px;height:380px;padding:10px" closed="true">
+            <div id="positionDialog" class="easyui-dialog" style="width:520px;height:550px;padding:10px" closed="true">
                 <div id="tools-imagePositioner-container">
-                    <!-- 底层：显示完整大图 -->
-                    <img id="bgImage" style="width:100%; height:100%; object-fit:contain;">
-                    <!-- 上层：红色选择框（浮在图片上） -->
-                    <div id="selectBox" style="border:2px solid red; position:absolute; cursor:move;"></div>
+                    <!-- 底层：positioning.png 基底 -->
+                    <img id="positionBg" style="width:100%; height:100%; object-fit:contain;">
+                    <!-- 上层：阶段作物图片（可拖拽+缩放） -->
+                    <img id="stageOverlay" style="position:absolute; cursor:move; z-index:10;">
                 </div>
                 <div style="text-align:center;padding-top:12px;">
                     <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-ok" id="btnCropConfirm">确定</a>
@@ -842,82 +842,117 @@
     }
 
     // 打开图片位置编辑弹窗
+    // 拖拽/缩放时自动同步宽高偏移到表单
+    function updateFormFromOverlay() {
+        var overlay = $('#stageOverlay');
+        var w = overlay.width();
+        var h = overlay.height();
+        var x = parseInt(overlay.css('left')) || 0;
+        var y = parseInt(overlay.css('top')) || 0;
+
+        $('#stageEditorForm input[name="imageWidth"]').val(w);
+        $('#stageEditorForm input[name="imageHeight"]').val(h);
+        $('#stageEditorForm input[name="imageOffsetX"]').val(x);
+        $('#stageEditorForm input[name="imageOffsetY"]').val(y);
+    }
+
+    // 打开图片位置编辑弹窗
     function openImagePositioner() {
-        var imageUrl = $('#stageEditorForm input[name="imageUrl"]').val();
-        if (!imageUrl) {
-            $.messager.alert('提示', '请先填写图片路径！');
+        var seedId = parseInt($('#stageSeedId').val());
+        var stageOrder = parseInt($('#stageEditorForm input[name="stageOrder"]').val()) || 1;
+
+        if (!seedId || seedId <= 0) {
+            $.messager.alert('提示', '请先保存种子信息');
             return;
         }
 
-        // 设置背景大图
-        $('#bgImage').attr('src', '/'+ imageUrl + "?t=" + new Date().getTime());
+        // 设置基底图片
+        $('#positionBg').attr('src', '/images/positioning.png?t=' + new Date().getTime());
 
-        // 读取表单里的宽高和偏移
+        // 构建阶段图片路径: /images/crops/{seedId}/{stageOrder}.png
+        var cropPath = '/images/crops/' + seedId + '/' + stageOrder + '.png';
+
+        // 读取之前保存的尺寸和位置
         var w = parseInt($('#stageEditorForm input[name="imageWidth"]').val()) || 80;
         var h = parseInt($('#stageEditorForm input[name="imageHeight"]').val()) || 80;
         var x = parseInt($('#stageEditorForm input[name="imageOffsetX"]').val()) || 50;
         var y = parseInt($('#stageEditorForm input[name="imageOffsetY"]').val()) || 50;
 
-        // 设置红框
-        $('#selectBox').css({
-            width: w,
-            height: h,
-            left: x,
-            top: y
+        // 销毁旧的可拖拽/缩放实例
+        try { $('#stageOverlay').resizable('destroy'); } catch(e) {}
+        try { $('#stageOverlay').draggable('destroy'); } catch(e) {}
+
+        // 设置初始位置和大小
+        $('#stageOverlay').css({ width: w, height: h, left: x, top: y, display: 'block' });
+
+        // 绑定图片加载完成事件
+        var img = $('#stageOverlay');
+        img.off('load.positioner');
+        img.on('load.positioner', function() {
+            $(this).draggable({
+                containment: 'parent',
+                drag: updateFormFromOverlay
+            }).resizable({
+                containment: 'parent',
+                handles: 'all',
+                resize: updateFormFromOverlay,
+                aspectRatio: true
+            });
+            updateFormFromOverlay();
         });
 
-        // 允许拖拽红框
-        $('#selectBox').draggable({
-            containment: 'parent'
-        });
+        img.attr('src', cropPath + '?t=' + new Date().getTime());
+
+        // 处理已缓存的图片（load事件已触发过）
+        if (img[0].complete) {
+            img.trigger('load.positioner');
+        }
+
+        // 自动填充图片路径字段
+        $('#stageEditorForm input[name="imageUrl"]').val(cropPath);
 
         $('#positionDialog').dialog('open').dialog('center');
     }
 
-
-    // 确定裁剪 → 截图 → 上传 → 保存路径
+    // 确定 → 合成基底+阶段图 → 保存到本地 → 路径写入数据库
     function gainPostion() {
-        var box = $('#selectBox');
-        var container = $('#tools-imagePositioner-container');
-        var bgImg = $('#bgImage')[0];
+        updateFormFromOverlay();
 
-        // 1. 获取红框位置和大小
-        var x = parseInt(box.css('left'));
-        var y = parseInt(box.css('top'));
-        var w = box.width();
-        var h = box.height();
+        var positionBg = $('#positionBg')[0];
+        var stageOverlay = $('#stageOverlay')[0];
 
-        if (w <= 0 || h <= 0) {
-            $.messager.alert('错误', '裁剪区域无效，请重新拖拽红框');
+        if (!positionBg.complete || !stageOverlay.complete) {
+            $.messager.alert('错误', '图片尚未加载完成，请稍后重试');
             return;
         }
 
-        // 2. 回填位置信息
-        $('#stageEditorForm input[name="imageWidth"]').val(w);
-        $('#stageEditorForm input[name="imageHeight"]').val(h);
-        $('#stageEditorForm input[name="imageOffsetX"]').val(x);
-        $('#stageEditorForm input[name="imageOffsetY"]').val(y);
+        // 合成 positioning.png + 阶段图片
+        var bgW = positionBg.naturalWidth;
+        var bgH = positionBg.naturalHeight;
 
-        // 3. 创建画布进行裁剪
         var canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = bgW;
+        canvas.height = bgH;
         var ctx = canvas.getContext('2d');
 
-        var imgW = bgImg.naturalWidth;
-        var imgH = bgImg.naturalHeight;
-        var containerW = container.width();
-        var containerH = container.height();
+        // 1. 画基底
+        ctx.drawImage(positionBg, 0, 0, bgW, bgH);
 
-        var scaleX = imgW / containerW;
-        var scaleY = imgH / containerH;
+        // 2. 画阶段图片（缩放至实际像素坐标）
+        var container = $('#tools-imagePositioner-container');
+        var scaleX = bgW / container.width();
+        var scaleY = bgH / container.height();
 
-        ctx.drawImage(bgImg,
-            x * scaleX, y * scaleY,
-            w * scaleX, h * scaleY,
-            0, 0, w, h);
+        var ow = $('#stageOverlay').width();
+        var oh = $('#stageOverlay').height();
+        var ox = parseInt($('#stageOverlay').css('left')) || 0;
+        var oy = parseInt($('#stageOverlay').css('top')) || 0;
 
-        // 4. Canvas → DataURL → Blob（比 toBlob 更可靠）
+        ctx.drawImage(stageOverlay,
+            Math.round(ox * scaleX), Math.round(oy * scaleY),
+            Math.round(ow * scaleX), Math.round(oh * scaleY));
+
+        // 3. Canvas → Blob → 上传
         var dataURL = canvas.toDataURL('image/png');
         var binaryStr = atob(dataURL.split(',')[1]);
         var byteArray = new Uint8Array(binaryStr.length);
@@ -926,9 +961,9 @@
         }
         var blob = new Blob([byteArray], { type: 'image/png' });
 
-        // 5. 上传到后端（传旧文件路径以便覆盖）
         var formData = new FormData();
-        formData.append('image', blob, 'cropped.png');
+        formData.append('image', blob, 'positioned.png');
+
         var oldPath = $('#stageEditorForm input[name="cropImage"]').val();
         if (oldPath) {
             formData.append('oldPath', oldPath);
@@ -940,17 +975,17 @@
             data: formData,
             contentType: false,
             processData: false,
-            success: function (res) {
+            success: function(res) {
                 if (res.code === 0) {
                     $('#stageEditorForm input[name="cropImage"]').val(res.data);
-                    $.messager.show({ title: '成功', msg: '裁剪图片已保存' });
+                    $.messager.show({ title: '成功', msg: '位置图片已保存' });
                 } else {
-                    $.messager.alert('错误', res.msg || '上传失败');
+                    $.messager.alert('错误', res.msg || '保存失败');
                 }
                 $('#positionDialog').dialog('close');
             },
-            error: function () {
-                $.messager.alert('错误', '上传失败');
+            error: function() {
+                $.messager.alert('错误', '保存失败');
                 $('#positionDialog').dialog('close');
             }
         });

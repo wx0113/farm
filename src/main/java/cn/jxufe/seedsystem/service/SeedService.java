@@ -26,9 +26,10 @@ public class SeedService {
     @Autowired
     private GrowthStageRepository growthStageRepository;
 
-    // ====================== 【修复】新增：根据 seedId 查询 ======================
-    public List<Seed> searchBySeedId(String seedId) {
-        return seedRepository.findBySeedId(seedId);
+    public List<Seed> searchById(Integer id) {
+        return seedRepository.findById(id)
+                .map(List::of)
+                .orElse(List.of());
     }
 
     public List<Seed> querySeeds(String seedName, int page, int rows) {
@@ -65,10 +66,23 @@ public class SeedService {
     }
 
     public void saveSeed(Seed seed) {
-        if (seed.getCreatedAt() == null) {
-            seed.setCreatedAt(java.time.LocalDateTime.now());
+        boolean isNew = seed.getCreatedAt() == null;
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+
+        if (isNew) {
+            if (seed.getId() == null) {
+                // 未指定ID，取最大值+1自动生成
+                Long maxId = entityManager
+                    .createQuery("SELECT COALESCE(MAX(s.id), 0) FROM Seed s", Long.class)
+                    .getSingleResult();
+                seed.setId(maxId.intValue() + 1);
+            } else if (seedRepository.existsById(seed.getId())) {
+                throw new IllegalArgumentException("种子ID " + seed.getId() + " 已存在，请更换");
+            }
+            seed.setCreatedAt(now);
+            seed.setSeedId(String.valueOf(seed.getId()));
         }
-        seed.setUpdatedAt(java.time.LocalDateTime.now());
+        seed.setUpdatedAt(now);
         seedRepository.save(seed);
     }
 

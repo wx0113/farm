@@ -50,9 +50,9 @@ public class SeedController {
     // 按种子ID搜索
     @GetMapping("/search")
     @ResponseBody
-    public List<Seed> search(@RequestParam String seedId) {
+    public List<Seed> search(@RequestParam Integer id) {
         try {
-            return seedService.searchBySeedId(seedId);
+            return seedService.searchById(id);
         } catch (Exception e) {
             e.printStackTrace();
             return List.of();

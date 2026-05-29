@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>玩家信息管理</title>
+    <link rel="stylesheet" href="easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="easyui/themes/icon.css">
+    <script src="easyui/jquery.min.js"></script>
+    <script src="easyui/jquery.easyui.min.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; }
+
+        .layout {
+            display: flex; flex-direction: column; height: 100vh;
+            background-image: url("/images/background.png");
+            background-repeat: no-repeat; background-size: cover;
+            background-position: center; background-attachment: fixed;
+        }
+        .top-frame {
+            height: 80px; position: relative;
+            background: url("/images/topbar.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+        .top-buttons {
+            position: absolute; right: 20px; top: 50%;
+            transform: translateY(-50%); display: flex; gap: 16px; align-items: center;
+        }
+        .icon-link {
+            width: 40px; height: 40px; display: flex;
+            align-items: center; justify-content: center;
+            text-decoration: none; cursor: pointer;
+        }
+        .icon-link img { width: 100%; height: 100%; object-fit: contain; }
+
+        .middle-frame {
+            flex: 1; overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            background: transparent; padding: 10px;
+        }
+
+        /* 绿色主题容器 */
+        .player-container {
+            width: 98%; height: 98%;
+            display: flex; flex-direction: column;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            background: #a5d6a7;
+            border-radius: 4px;
+            border: 1px solid #66bb6a;
+            padding: 10px;
+        }
+        .player-header {
+            flex-shrink: 0;
+            padding: 0 0 8px 0;
+        }
+        .player-header h2 {
+            color: #333;
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .toolbar {
+            padding: 8px;
+            background: #1b5e20;
+            border-radius: 4px 4px 0 0;
+            flex-shrink: 0;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .toolbar label { font-size: 12px; color: #f4f4f4; }
+        .search-box {
+            padding: 2px 6px; width: 160px; border: 1px solid #ccc;
+            border-radius: 3px; font-size: 12px; outline: none;
+        }
+
+        /* 表格 */
+        .table-wrapper {
+            flex: 1; overflow: auto; min-height: 0;
+            background: #c8e6c9;
+        }
+        table {
+            width: 100%; border-collapse: collapse; font-size: 16px;
+        }
+        th, td {
+            border: 1px solid #81c784; padding: 8px 6px;
+            text-align: center; vertical-align: middle;
+        }
+        th {
+            background: #1b5e20; color: #fff; font-weight: bold;
+        }
+        td {
+            background: #c8e6c9; color: #333;
+        }
+        tr:nth-child(even) td {
+            background: #a5d6a7;
+        }
+        tr:hover td {
+            background: #81c784 !important;
+        }
+        tr.adding-row td {
+            background: #fff9c4 !important;
+        }
+
+        .avatar-img {
+            width: 70px; height: 70px; border-radius: 50%;
+            object-fit: cover; cursor: pointer; border: 2px solid #66bb6a;
+        }
+
+        .resource-icon {
+            width: 32px; height: 32px; vertical-align: middle; margin-right: 6px;
+        }
+
+        .action-btn {
+            padding: 3px 8px; border: none; border-radius: 3px;
+            cursor: pointer; font-size: 14px; margin: 1px;
+        }
+        .btn-upload-avatar { background: #43a047; color: #fff; }
+        .btn-save-row { background: #2e7d32; color: #fff; }
+        .btn-delete-row { background: #c62828; color: #fff; }
+        .btn-cancel-row { background: #757575; color: #fff; }
+
+        .edit-input {
+            width: 80px; padding: 4px; text-align: center;
+            border: 1px solid #66bb6a; border-radius: 3px; outline: none; font-size: 16px;
+        }
+        .edit-input-name {
+            width: 100px;
+        }
+
+        /* 分页 */
+        .pagination {
+            padding: 10px 15px;
+            background: #2e7d32;
+            text-align: right;
+            flex-shrink: 0;
+            border-radius: 0 0 4px 4px;
+            color: #fff;
+            display: flex; align-items: center; justify-content: flex-end; gap: 10px;
+        }
+        .pagination button {
+            padding: 4px 12px; border: 1px solid #81c784;
+            background: #43a047; color: #fff; cursor: pointer;
+            border-radius: 3px; font-size: 13px;
+        }
+        .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .page-text { font-size: 13px; }
+
+        /* 模态框 */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%; background: rgba(0,0,0,0.5);
+            z-index: 9999; justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background: #c8e6c9; padding: 25px; border-radius: 8px;
+            text-align: center; max-width: 450px; width: 90%;
+            border: 1px solid #66bb6a;
+        }
+        .modal-content h3 { color: #1b5e20; margin-bottom: 12px; }
+
+        /* toast */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px;
+            background: #2e7d32; color: #fff; padding: 10px 18px;
+            border-radius: 6px; z-index: 9999; font-size: 14px;
+            animation: fadeInOut 3s forwards;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateX(100px); }
+            10% { opacity: 1; transform: translateX(0); }
+            90% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(100px); }
+        }
+        .toast.error { background: #c62828; }
+
+        /* Panel样式覆盖 */
+        .panel-header { background: #1b5e20 !important; }
+        .window .window-body { background: #c8e6c9 !important; }
+
+        .bottom-frame {
+            height: 40px;
+            background: url("/images/bottom.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+    </style>
+</head>
+<body>
+<div class="layout">
+    <div class="top-frame">
+        <div class="top-buttons">
+            <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
+                <img src="/images/userSelect.png" alt="切换用户">
+            </a>
+            <a href="index.html" class="icon-link" title="首页">
+                <img src="/images/farmLands.png" alt="首页">
+            </a>
+            <a href="shop.html" class="icon-link" title="商店">
+                <img src="/images/buySeed.png" alt="商店">
+            </a>
+            <a href="player.html" class="icon-link" title="用户管理" style="opacity:0.5; cursor:default;">
+                <img src="/images/userManager.png" alt="用户管理">
+            </a>
+            <a href="#" class="icon-link" title="图鉴">
+                <img src="/images/seedManager.png" alt="图鉴">
+            </a>
+        </div>
+    </div>
+
+    <div class="middle-frame">
+        <div class="player-container">
+            <div class="player-header"><h2>玩家信息管理</h2></div>
+            <div class="toolbar">
+                <label>用户名：</label>
+                <input class="search-box" id="searchUsername" placeholder="输入用户名搜索">
+                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="searchPlayer()">查询</a>
+                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-clear" plain="true" onclick="resetSearch()">清空</a>
+                <span style="flex:1;"></span>
+                <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-add" plain="true" onclick="showAddRow()">添加玩家</a>
+            </div>
+            <div class="table-wrapper">
+                <table id="playerTable">
+                    <thead>
+                    <tr>
+                        <th style="width:50px;">ID</th>
+                        <th style="width:80px;">头像</th>
+                        <th>用户名</th>
+                        <th>昵称</th>
+                        <th>经验值</th>
+                        <th>积分</th>
+                        <th>金币</th>
+                        <th style="width:160px;">操作</th>
+                    </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    <tr><td colspan="8">加载中...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination">
+                <button id="prevBtn" onclick="prevPage()">上一页</button>
+                <span class="page-text" id="pageInfo">第 1 页</span>
+                <button id="nextBtn" onclick="nextPage()">下一页</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-frame"></div>
+</div>
+
+<!-- 头像上传弹窗 -->
+<div id="uploadModal" class="modal">
+    <div class="modal-content" style="max-width:420px;">
+        <h3>上传头像</h3>
+        <div style="margin:15px 0;">
+            <input type="file" id="avatarFile" accept="image/*" style="font-size:14px;">
+        </div>
+        <button onclick="confirmUpload()" style="background:#43a047;color:#fff;padding:8px 20px;border:none;border-radius:6px;cursor:pointer;margin-right:10px;">确认上传</button>
+        <button onclick="closeUploadModal()" style="background:#757575;color:#fff;padding:8px 20px;border:none;border-radius:6px;cursor:pointer;">取消</button>
+    </div>
+</div>
+
+<script>
+    var currentPage = 1, pageSize = 10, totalRows = 0, currentUploadUser = null, addingRow = false;
+
+    $(function() {
+        // 切换用户
+        $('#switchUserBtn').bind('click', function() {
+            $.messager.alert('提示', '请前往首页切换用户');
+        });
+
+        loadPlayers();
+    });
+
+    function showMessage(msg, isError) {
+        var toast = $('<div class="toast' + (isError ? ' error' : '') + '"></div>').text(msg);
+        $('body').append(toast);
+        setTimeout(function() { toast.remove(); }, 2000);
+    }
+
+    function loadPlayers() {
+        var keyword = $('#searchUsername').val() || '';
+        $.ajax({
+            url: '/player/query', type: 'GET', dataType: 'json',
+            data: { page: currentPage, rows: pageSize, username: keyword },
+            success: function(data) {
+                totalRows = data.total || 0;
+                renderTable(data.rows || []);
+                var totalPages = Math.ceil(totalRows / pageSize) || 1;
+                $('#pageInfo').text('第 ' + currentPage + ' 页 / 共 ' + totalPages + ' 页');
+                $('#prevBtn').prop('disabled', currentPage <= 1);
+                $('#nextBtn').prop('disabled', currentPage * pageSize >= totalRows);
+            },
+            error: function() { showMessage('加载失败', true); }
+        });
+    }
+
+    function renderTable(rows) {
+        var tbody = $('#tableBody');
+        if (!rows.length) { tbody.html('<tr><td colspan="8">暂无数据</td></tr>'); return; }
+        var html = '';
+        rows.forEach(function(row) {
+            var avatarUrl = row.avatarUrl && row.avatarUrl !== 'null' ? row.avatarUrl : 'images/unknownUser.png';
+            avatarUrl += (avatarUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+            html += '<tr id="row-' + row.id + '">'
+                + '<td>' + row.id + '</td>'
+                + '<td><img src="' + avatarUrl + '" class="avatar-img" onclick="showUpload(\'' + escapeHtml(row.username) + '\')" title="点击更换头像"></td>'
+                + '<td class="editable" data-field="username" data-id="' + row.id + '" ondblclick="editField(this, \'' + row.id + '\', \'username\')"><span>' + escapeHtml(row.username) + '</span></td>'
+                + '<td class="editable" data-field="nickname" data-id="' + row.id + '" ondblclick="editField(this, \'' + row.id + '\', \'nickname\')"><span>' + escapeHtml(row.nickname || '-') + '</span></td>'
+                + '<td class="editable" data-field="exp" data-id="' + row.id + '" ondblclick="editField(this, \'' + row.id + '\', \'exp\')"><img src="/images/exp.png" class="resource-icon"><span>' + row.exp + '</span></td>'
+                + '<td class="editable" data-field="points" data-id="' + row.id + '" ondblclick="editField(this, \'' + row.id + '\', \'points\')"><img src="/images/score.png" class="resource-icon"><span>' + row.points + '</span></td>'
+                + '<td class="editable" data-field="gold" data-id="' + row.id + '" ondblclick="editField(this, \'' + row.id + '\', \'gold\')"><img src="/images/gold.png" class="resource-icon"><span>' + row.gold + '</span></td>'
+                + '<td>'
+                + '<button class="action-btn btn-upload-avatar" onclick="showUpload(\'' + escapeHtml(row.username) + '\')">头像</button>'
+                + '<button class="action-btn btn-save-row" onclick="saveRow(\'' + row.id + '\')">保存</button>'
+                + '<button class="action-btn btn-delete-row" onclick="deletePlayer(\'' + row.id + '\')">删除</button>'
+                + '</td>'
+                + '</tr>';
+        });
+        tbody.html(html);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // 行内编辑
+    function editField(cell, id, field) {
+        var span = $(cell).find('span');
+        var oldVal = span.text().trim();
+        if (oldVal === '-' || oldVal === '') oldVal = '';
+        var input = $('<input class="edit-input">').val(oldVal);
+        span.hide();
+        $(cell).find('.resource-icon').hide();
+        input.insertAfter(span);
+        input.focus();
+        input.on('blur', function() {
+            var newVal = $(this).val().trim();
+            $(this).remove();
+            span.text(newVal || (field === 'username' ? '(必填)' : '-')).show();
+            $(cell).find('.resource-icon').show();
+        });
+    }
+
+    function saveRow(id) {
+        var row = $('#row-' + id);
+        var updateData = { id: parseInt(id) };
+
+        row.find('.editable').each(function() {
+            var field = $(this).data('field');
+            var input = $(this).find('input');
+            var span = $(this).find('span');
+
+            if (input.length) {
+                var newVal = input.val().trim();
+                if (newVal === '' && field !== 'username') newVal = null;
+                if (field === 'exp' || field === 'points' || field === 'gold') {
+                    newVal = newVal !== null ? parseInt(newVal) : 0;
+                }
+                updateData[field] = newVal;
+                input.remove();
+                span.text(newVal !== null ? newVal : '-').show();
+                $(this).find('.resource-icon').show();
+            } else {
+                var textVal = span.text().trim();
+                if (textVal === '-' || textVal === '') textVal = null;
+                if (field === 'exp' || field === 'points' || field === 'gold') {
+                    textVal = textVal !== null ? parseInt(textVal) : 0;
+                }
+                updateData[field] = textVal;
+            }
+        });
+
+        $.ajax({
+            url: '/player/update', type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(updateData), dataType: 'json',
+            success: function(result) {
+                if (result.code === 200) {
+                    showMessage('玩家 ' + id + ' 保存成功');
+                    loadPlayers();
+                } else {
+                    showMessage('保存失败：' + (result.msg || '未知错误'), true);
+                }
+            },
+            error: function() { showMessage('保存失败，请检查网络', true); }
+        });
+    }
+
+    function deletePlayer(id) {
+        $.messager.confirm('确认', '确定删除该玩家吗？', function(r) {
+            if (!r) return;
+            $.ajax({
+                url: '/player/delete', type: 'POST', data: { id: id }, dataType: 'json',
+                success: function(result) {
+                    if (result.code === 200) {
+                        showMessage('删除成功');
+                        loadPlayers();
+                    } else {
+                        showMessage('删除失败：' + (result.msg || ''), true);
+                    }
+                },
+                error: function() { showMessage('删除失败', true); }
+            });
+        });
+    }
+
+    // 添加新行
+    function showAddRow() {
+        if (addingRow) return;
+        addingRow = true;
+        var html = '<tr class="adding-row" id="addRow">'
+            + '<td><span style="color:#999;">自动</span></td>'
+            + '<td><img src="images/unknownUser.png" class="avatar-img" id="addAvatarPreview" onclick="showUploadForAdd()"></td>'
+            + '<td><input class="edit-input edit-input-name" id="addUsername" placeholder="必填"></td>'
+            + '<td><input class="edit-input" id="addNickname" placeholder="选填"></td>'
+            + '<td><img src="/images/exp.png" class="resource-icon"><input class="edit-input" id="addExp" value="0"></td>'
+            + '<td><img src="/images/score.png" class="resource-icon"><input class="edit-input" id="addPoints" value="0"></td>'
+            + '<td><img src="/images/gold.png" class="resource-icon"><input class="edit-input" id="addGold" value="0"></td>'
+            + '<td>'
+            + '<button class="action-btn btn-save-row" onclick="confirmAdd()">确认</button>'
+            + '<button class="action-btn btn-cancel-row" onclick="cancelAdd()">取消</button>'
+            + '</td>'
+            + '</tr>';
+        $('#tableBody').prepend(html);
+        addAvatarPath = '';
+    }
+
+    var addAvatarPath = '';
+
+    function showUploadForAdd() {
+        currentUploadUser = '__add__';
+        $('#uploadModal').css('display', 'flex');
+        $('#avatarFile').val('');
+    }
+
+    function cancelAdd() {
+        $('#addRow').remove();
+        addingRow = false;
+    }
+
+    function confirmAdd() {
+        var username = $('#addUsername').val().trim();
+        if (!username) {
+            $.messager.alert('提示', '用户名不能为空');
+            return;
+        }
+        var data = {
+            username: username,
+            nickname: $('#addNickname').val().trim() || username,
+            exp: parseInt($('#addExp').val()) || 0,
+            points: parseInt($('#addPoints').val()) || 0,
+            gold: parseInt($('#addGold').val()) || 0,
+            avatarUrl: addAvatarPath || null
+        };
+
+        $.ajax({
+            url: '/player/save', type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify(data), dataType: 'json',
+            success: function(result) {
+                if (result.code === 200) {
+                    showMessage('添加成功');
+                    cancelAdd();
+                    loadPlayers();
+                } else {
+                    showMessage('添加失败：' + (result.msg || ''), true);
+                }
+            },
+            error: function() { showMessage('添加失败', true); }
+        });
+    }
+
+    // 头像上传
+    function showUpload(username) {
+        currentUploadUser = username;
+        $('#uploadModal').css('display', 'flex');
+        $('#avatarFile').val('');
+    }
+
+    function confirmUpload() {
+        var fileInput = $('#avatarFile')[0];
+        if (!fileInput.files || !fileInput.files.length) {
+            $.messager.alert('提示', '请先选择图片文件');
+            return;
+        }
+        var formData = new FormData();
+        formData.append('filePathName', fileInput.files[0]);
+
+        $.ajax({
+            url: '/file/saveHeadImg', type: 'POST',
+            data: formData, processData: false, contentType: false,
+            dataType: 'json',
+            success: function(result) {
+                if (result.code === 200) {
+                    var avatarUrl = result.data;
+                    if (currentUploadUser === '__add__') {
+                        addAvatarPath = avatarUrl;
+                        $('#addAvatarPreview').attr('src', avatarUrl + '?t=' + Date.now());
+                        showMessage('头像已上传');
+                    } else {
+                        $.ajax({
+                            url: '/player/updateAvatar', type: 'POST',
+                            data: { username: currentUploadUser, avatarUrl: avatarUrl },
+                            dataType: 'json',
+                            success: function(r) {
+                                if (r.code === 200) {
+                                    // 直接更新对应行的头像 DOM
+                                    $('#tableBody .avatar-img').each(function() {
+                                        var onclick = $(this).attr('onclick') || '';
+                                        if (onclick.indexOf("'" + currentUploadUser + "'") >= 0) {
+                                            $(this).attr('src', avatarUrl + '?t=' + Date.now());
+                                        }
+                                    });
+                                    showMessage('头像更新成功');
+                                    // 后台也刷新一次表格确保数据一致
+                                    setTimeout(function() { loadPlayers(); }, 500);
+                                } else {
+                                    showMessage('更新失败：' + (r.msg || ''), true);
+                                }
+                            },
+                            error: function() { showMessage('更新失败', true); }
+                        });
+                    }
+                    closeUploadModal();
+                } else {
+                    showMessage('上传失败：' + (result.msg || '未知错误'), true);
+                }
+            },
+            error: function() { showMessage('上传失败，请检查网络', true); }
+        });
+    }
+
+    function closeUploadModal() {
+        $('#uploadModal').css('display', 'none');
+    }
+
+    function searchPlayer() { currentPage = 1; loadPlayers(); }
+    function resetSearch() { $('#searchUsername').val(''); currentPage = 1; loadPlayers(); }
+    function prevPage() { if (currentPage > 1) { currentPage--; loadPlayers(); } }
+    function nextPage() { if (currentPage * pageSize < totalRows) { currentPage++; loadPlayers(); } }
+</script>
+</body>
+</html>

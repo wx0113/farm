@@ -220,7 +220,7 @@
     <!-- 顶部栏 -->
     <div class="top-frame">
         <div class="user-panel" id="userPanel">
-            <img class="user-avatar" id="userAvatar" src="images/default_avatar.png" alt="头像">
+            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
             <div class="user-info">
                 <div><strong id="currentNickname">未知用户</strong></div>
                 <div>经验：<span id="currentExp">0</span>金币：<span id="currentGold">0</span>积分：<span id="currentPoints">0</span></div>
@@ -233,10 +233,10 @@
             <a href="index.html" class="icon-link" title="首页">
                 <img src="/images/farmLands.png" alt="首页">
             </a>
-            <a href="javascript:void(0)" class="icon-link" title="种子管理" style="opacity:0.5; cursor:default;">
-                <img src="/images/buySeed.png" alt="种子管理">
+            <a href="shop.html" class="icon-link" title="商店">
+                <img src="/images/buySeed.png" alt="商店">
             </a>
-            <a href="playerManager.html" class="icon-link" title="用户管理">
+            <a href="player.html" class="icon-link" title="用户管理">
                 <img src="/images/userManager.png" alt="用户管理">
             </a>
             <a href="#" class="icon-link" title="图鉴">
@@ -255,7 +255,7 @@
             <div id="toolbar">
                 <span style="display:inline-block;vertical-align:middle;margin-right:10px;">
                     <label style="font-size:12px;color:#f4f4f4;">按种子ID筛选：</label>
-                    <input class="search-box" id="searchId" placeholder="例如：S001" />
+                    <input class="search-box" id="searchId" placeholder="输入数字ID" />
                     <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="searchById()" style="margin-left:3px;">查询</a>
                     <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-clear" plain="true" onclick="clearSearch()" style="margin-left:3px;">清空</a>
                 </span>
@@ -275,9 +275,8 @@
             <div id="formContainer" class="easyui-dialog" style="width:450px;padding:20px"
                  closed="true" buttons="#formButtons" modal="true">
                 <form id="formEditor" method="post" novalidate>
-                    <input type="hidden" name="id">
                     <table cellpadding="5">
-                        <tr><td>种子ID:</td><td><input class="easyui-textbox" name="seedId" required="true"></td></tr>
+                        <tr><td>种子ID:</td><td><input class="easyui-textbox" name="id" id="formSeedId" style="width:100%"></td></tr>
                         <tr><td>种子名称:</td><td><input class="easyui-textbox" name="seedName" required="true"></td></tr>
                         <tr><td>X季作物:</td><td>
                             <select class="easyui-combobox" name="xSeasonCrop" panelHeight="auto" style="width:100%">
@@ -323,16 +322,15 @@
                        data-options="fitColumns:true,rownumbers:true,singleSelect:true,pagination:false,method:'get'">
                     <thead>
                     <tr>
-                        <th data-options="field:'stageOrder',width:50,align:'center'">阶段</th>
-                        <th data-options="field:'stageTitle',width:100,align:'center'">阶段标题</th>
-                        <th data-options="field:'stageDuration',width:80,align:'right',formatter:formatSeconds">时长</th>
-                        <th data-options="field:'pestProbability',width:80,align:'right'">生虫概率</th>
-                        <th data-options="field:'imageUrl',width:180,align:'left'">图片路径</th>
-                        <th data-options="field:'imageWidth',width:50,align:'center'">宽度</th>
-                        <th data-options="field:'imageHeight',width:50,align:'center'">高度</th>
-                        <th data-options="field:'imageOffsetX',width:50,align:'center'">OX</th>
-                        <th data-options="field:'imageOffsetY',width:50,align:'center'">OY</th>
-                        <th data-options="field:'cropStatus',width:70,align:'center'">状态</th>
+                        <th data-options="field:'stageOrder',width:60,align:'center'">阶段</th>
+                        <th data-options="field:'stageTitle',width:120,align:'center'">阶段标题</th>
+                        <th data-options="field:'stageDuration',width:100,align:'right',formatter:formatSeconds">时长</th>
+                        <th data-options="field:'pestProbability',width:100,align:'right'">生虫概率</th>
+                        <th data-options="field:'imageWidth',width:60,align:'center'">宽度</th>
+                        <th data-options="field:'imageHeight',width:60,align:'center'">高度</th>
+                        <th data-options="field:'imageOffsetX',width:60,align:'center'">OX</th>
+                        <th data-options="field:'imageOffsetY',width:60,align:'center'">OY</th>
+                        <th data-options="field:'cropStatus',width:80,align:'center'">状态</th>
                     </tr>
                     </thead>
                 </table>
@@ -443,7 +441,7 @@
         $('#userCombo').combobox({
             valueField: 'nickname', textField: 'nickname',
             formatter: function(row) {
-                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/default_avatar.png';
+                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
                 return '<img class="item-img" src="' + avatarFile + '" /><span>' + row.nickname + '</span>';
             }
         });
@@ -564,9 +562,7 @@
                 });
             },
             columns: [[
-                { field: 'id', title: 'ID', width: 40 },
-                { field: 'seedId', title: '种子ID', width: 80, align: 'center',
-                  editor: { type: 'textbox', options: { required: true } } },
+                { field: 'id', title: '种子ID', width: 60, align: 'center' },
                 { field: 'seedName', title: '种子名称', width: 100, align: 'center',
                   editor: { type: 'textbox', options: { required: true } } },
                 { field: 'xseasonCrop', title: 'X季作物', width: 90, align: 'center',
@@ -611,7 +607,7 @@
         $('#currentExp').text(player.exp);
         $('#currentGold').text(player.gold);
         $('#currentPoints').text(player.points);
-        $('#userAvatar').attr('src', player.avatarUrl || 'images/default_avatar.png');
+        $('#userAvatar').attr('src', player.avatarUrl || 'images/unknownUser.png');
     }
 
     // 加载当前用户信息
@@ -628,7 +624,8 @@
     function newRecord() {
         $('#formContainer').dialog('open').dialog('center').dialog('setTitle', '添加种子');
         $('#formEditor').form('clear');
-        $('#formEditor').find('input[name="id"]').val('');
+        $('#formSeedId').textbox('readonly', false);
+        $('#formSeedId').textbox('setValue', '');
     }
 
     // 编辑选中的种子行
@@ -637,6 +634,7 @@
         if (!row) { $.messager.alert('提示', '请先选择一行！'); return; }
         $('#formContainer').dialog('open').dialog('center').dialog('setTitle', '编辑种子');
         $('#formEditor').form('load', row);
+        $('#formSeedId').textbox('readonly', true);
     }
 
     // 保存种子记录（新增/编辑）
@@ -728,15 +726,17 @@
     function searchById() {
         var keyword = $.trim($('#searchId').val());
         if (!keyword) { $.messager.alert('提示', '请输入种子ID进行筛选'); return; }
+        var id = parseInt(keyword);
+        if (isNaN(id)) { $.messager.alert('提示', '请输入有效的数字ID'); return; }
         $.ajax({
-            url: '/seed/search', type: 'GET', data: { seedId: keyword }, dataType: 'json',
+            url: '/seed/search', type: 'GET', data: { id: id }, dataType: 'json',
             success: function(data) {
                 if (data && data.length > 0) {
                     grid.datagrid('loadData', { total: data.length, rows: data });
                     $.messager.show({ title: '筛选完成', msg: '共找到 ' + data.length + ' 条匹配记录' });
                 } else {
                     grid.datagrid('loadData', { total: 0, rows: [] });
-                    $.messager.alert('未找到', '没有匹配的种子ID【' + keyword + '】', 'warning');
+                    $.messager.alert('未找到', '没有匹配的种子ID【' + id + '】', 'warning');
                 }
             },
             error: function() { $.messager.alert('错误', '查询失败', 'error'); }

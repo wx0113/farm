@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Data
 public class Seed {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Column(name = "seed_id")

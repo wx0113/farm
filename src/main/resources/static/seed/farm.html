@@ -232,6 +232,8 @@
         initUserSwitch();
         loadCurrentPlayer();
         startPolling();
+        // 首次用户交互时激活音效（浏览器自动播放策略要求）
+        $(document).one('click', function() { Sound.init(); });
     });
 
     // ===================== 初始化土地网格 =====================
@@ -367,6 +369,7 @@
 
     // ===================== 土地点击 =====================
     $('#farmField').on('click', '.land-plot', function() {
+        Sound.click();
         var $plot = $(this);
         var idx = parseInt($plot.data('land-index'));
         var state = landStates[idx];
@@ -432,11 +435,11 @@
                     pollLandStates();
                     loadCurrentPlayer();
                 } else {
-                    Sound.fail();
+                    Sound.taunt();
                     $.messager.alert('播种失败', res.msg, 'error');
                 }
             },
-            error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+            error: function() { Sound.taunt(); $.messager.alert('错误', '网络请求失败', 'error'); }
         });
     };
 
@@ -452,11 +455,11 @@
                         pollLandStates();
                         loadCurrentPlayer();
                     } else {
-                        Sound.fail();
+                        Sound.taunt();
                         $.messager.alert('除虫失败', res.msg, 'error');
                     }
                 },
-                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+                error: function() { Sound.taunt(); $.messager.alert('错误', '网络请求失败', 'error'); }
             });
         });
     }
@@ -473,11 +476,11 @@
                         pollLandStates();
                         loadCurrentPlayer();
                     } else {
-                        Sound.fail();
+                        Sound.taunt();
                         $.messager.alert('收获失败', res.msg, 'error');
                     }
                 },
-                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+                error: function() { Sound.taunt(); $.messager.alert('错误', '网络请求失败', 'error'); }
             });
         });
     }
@@ -494,11 +497,11 @@
                         pollLandStates();
                         loadCurrentPlayer();
                     } else {
-                        Sound.fail();
+                        Sound.taunt();
                         $.messager.alert('清除失败', res.msg, 'error');
                     }
                 },
-                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+                error: function() { Sound.taunt(); $.messager.alert('错误', '网络请求失败', 'error'); }
             });
         });
     }

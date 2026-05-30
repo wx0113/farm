@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>农场管理系统 - 农场种植</title>
+
+    <link rel="stylesheet" href="easyui/themes/default/easyui.css">
+    <link rel="stylesheet" href="easyui/themes/icon.css">
+    <link rel="stylesheet" href="green-theme.css">
+
+    <script src="easyui/jquery.min.js"></script>
+    <script src="easyui/jquery.easyui.min.js"></script>
+    <script src="sound.js"></script>
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: "Microsoft YaHei", sans-serif; height: 100vh; overflow: hidden; }
+
+        .layout {
+            display: flex; flex-direction: column; height: 100vh;
+            background-image: url("/images/background.png");
+            background-repeat: no-repeat; background-size: cover;
+            background-position: center; background-attachment: fixed;
+        }
+
+        .top-frame {
+            height: 80px; position: relative;
+            background: url("/images/topbar.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+
+        .top-buttons {
+            position: absolute; right: 20px; top: 50%;
+            transform: translateY(-50%); display: flex; gap: 16px; align-items: center;
+        }
+
+        .icon-link {
+            width: 40px; height: 40px; display: flex;
+            align-items: center; justify-content: center;
+            text-decoration: none; cursor: pointer;
+            outline: none; flex-shrink: 0;
+        }
+        .icon-link img { width: 100%; height: 100%; object-fit: contain; }
+
+        .middle-frame {
+            flex: 1; overflow: hidden; display: flex;
+            align-items: center; justify-content: center;
+            background: transparent; padding: 10px;
+        }
+
+        /* 用户面板 */
+        .user-panel {
+            position: absolute; top: 10px; left: 20px; display: flex;
+            align-items: center; gap: 10px;
+            background: rgba(165, 214, 167, 0.95); padding: 8px 15px;
+            border-radius: 8px; border: 1px solid #66bb6a; z-index: 10;
+        }
+        .user-avatar {
+            width: 48px; height: 48px; border-radius: 50%;
+            object-fit: cover; background-color: #e0e0e0;
+        }
+        .user-info { text-align: left; line-height: 1.5; min-width: 180px; font-size: 13px; }
+
+        .bottom-frame {
+            height: 40px;
+            background: url("/images/bottom.png") repeat-x left center;
+            background-size: auto 100%;
+        }
+
+        /* 农场田地容器 */
+        .farm-field {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0px;
+            padding: 10px;
+        }
+
+        .land-row {
+            display: flex;
+            gap: 3px;
+            align-items: center;
+        }
+
+        .land-row:nth-child(odd)  { margin-left: 0; }
+        .land-row:nth-child(even) { margin-left: 73px; }
+
+        /* 单个土地块 */
+        .land-plot {
+            width: 146px; height: 146px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+        }
+        .land-plot img.land-bg {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        .land-plot .crop-icon {
+            position: absolute;
+            width: 60%; height: 60%;
+            object-fit: contain; pointer-events: none; z-index: 2;
+        }
+
+        /* 光标样式 */
+        .cursor-empty    { cursor: url("/images/actionPlant.cur"), pointer; }
+        .cursor-growing  { cursor: url("/images/actionWait.cur"), wait; }
+        .cursor-worm     { cursor: url("/images/actionCleanWorm.cur"), pointer; }
+        .cursor-mature   { cursor: url("/images/actionHarvest.cur"), pointer; }
+        .cursor-withered { cursor: url("/images/actionCleanLand.cur"), pointer; }
+
+        /* 种子选择卡片 */
+        .seed-select-card {
+            display: inline-block; width: 100px; padding: 10px;
+            text-align: center; cursor: pointer; border: 2px solid transparent;
+            border-radius: 8px; margin: 6px; background: #e8f5e9;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .seed-select-card:hover { border-color: #43a047; background: #c8e6c9; }
+        .seed-select-card img {
+            width: 60px; height: 60px; object-fit: contain; display: block; margin: 0 auto 6px;
+        }
+        .seed-select-card .seed-name { font-weight: bold; font-size: 13px; color: #1b5e20; }
+        .seed-select-card .seed-qty { font-size: 11px; color: #666; }
+        .seed-select-card .seed-req { font-size: 11px; color: #c62828; }
+
+        /* ===== EasyUI 深绿主题 ===== */
+        .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+        .panel-title, .panel-tool { color: #fff !important; }
+        .window { border-color: #66bb6a !important; }
+        .window .window-body, .messager-body { background: #c8e6c9 !important; }
+        .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+        .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+        .messager-icon-question { background: #c8e6c9 !important; }
+    </style>
+</head>
+<body>
+
+<div class="layout">
+    <div class="top-frame">
+        <div class="user-panel" id="userPanel">
+            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
+            <div class="user-info">
+                <div><strong id="currentNickname">未知用户</strong></div>
+                <div>经验：<span id="currentExp">0</span>&nbsp;金币：<span id="currentGold">0</span>&nbsp;积分：<span id="currentPoints">0</span></div>
+            </div>
+        </div>
+
+        <div class="top-buttons">
+            <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
+                <img src="/images/userSelect.png" alt="切换用户">
+            </a>
+            <a href="farm.html" class="icon-link" title="农场种植">
+                <img src="/images/farmLands.png" alt="农场种植">
+            </a>
+            <a href="shop.html" class="icon-link" title="商店">
+                <img src="/images/buySeed.png" alt="商店">
+            </a>
+            <a href="player.html" class="icon-link" title="用户管理">
+                <img src="/images/userManager.png" alt="用户管理">
+            </a>
+            <a href="seed.html" class="icon-link" title="图鉴">
+                <img src="/images/seedManager.png" alt="图鉴">
+            </a>
+        </div>
+    </div>
+
+    <div class="middle-frame">
+        <div class="farm-field" id="farmField">
+            <!-- 4行×6列=24块地，由JS动态生成 -->
+        </div>
+    </div>
+
+    <div class="bottom-frame"></div>
+</div>
+
+<!-- 用户选择对话框 -->
+<div id="userSelectDialog" class="easyui-dialog" title="用户选择"
+     closed="true" style="width: 400px; padding: 20px; z-index: 9999;"
+     buttons="#dlgUserButtons">
+    <div style="margin-bottom: 15px;">
+        <span style="font-weight: bold;">选择用户：</span>
+        <input id="userCombo" style="width: 200px;">
+    </div>
+    <div style="text-align: center; font-size: 12px; color: #666;">
+        请在下拉框中选择用户昵称，并点击"确认"按钮切换用户。
+    </div>
+</div>
+<div id="dlgUserButtons">
+    <a href="javascript:void(0)" class="easyui-linkbutton" id="confirmUserBtn"
+       data-options="iconCls:'icon-ok'">确认</a>
+    <a href="javascript:void(0)" class="easyui-linkbutton"
+       data-options="iconCls:'icon-cancel'"
+       onclick="$('#userSelectDialog').dialog('close')">取消</a>
+</div>
+
+<!-- 种子选择对话框 -->
+<div id="seedSelectDialog" class="easyui-dialog" title="选择要播种的种子"
+     closed="true" style="width:520px;padding:15px;z-index:9999;"
+     buttons="#seedDlgButtons">
+    <div style="margin-bottom:10px;font-size:13px;color:#555;">
+        当前土地类型：<strong id="seedDlgLandType"></strong>
+    </div>
+    <div id="seedCardContainer" style="min-height:120px;text-align:center;">
+        <div style="color:#999;padding:30px;">加载中...</div>
+    </div>
+</div>
+<div id="seedDlgButtons">
+    <a href="javascript:void(0)" class="easyui-linkbutton"
+       data-options="iconCls:'icon-cancel'"
+       onclick="$('#seedSelectDialog').dialog('close')">取消</a>
+</div>
+
+<script>
+    // ===================== 全局状态 =====================
+    var landStates = {};        // landIndex → state object
+    var currentPlayer = null;
+    var pollTimer = null;
+    var msgPollTimer = null;
+    var selectedLandIndex = -1;
+
+    // 默认土地布局
+    var LAND_GRID = [
+        { type: '黄土地', bg: '/images/land.png' },
+        { type: '黑土地', bg: '/images/landBlack.png' },
+        { type: '沙土地', bg: '/images/landGold.png' },
+        { type: '沙土地', bg: '/images/landRed.png' }
+    ];
+    var COLS_PER_ROW = 6;
+
+    $(function() {
+        initFarmField();
+        initUserSwitch();
+        loadCurrentPlayer();
+        startPolling();
+    });
+
+    // ===================== 初始化土地网格 =====================
+    function initFarmField() {
+        var html = '';
+        for (var row = 0; row < LAND_GRID.length; row++) {
+            html += '<div class="land-row">';
+            for (var col = 0; col < COLS_PER_ROW; col++) {
+                var idx = row * COLS_PER_ROW + col;
+                html += '<div class="land-plot cursor-empty" data-land-index="' + idx + '" '
+                    + 'data-land-type="' + LAND_GRID[row].type + '" '
+                    + 'title="' + LAND_GRID[row].type + ' - 可播种">'
+                    + '<img class="land-bg" src="' + LAND_GRID[row].bg + '" alt="">'
+                    + '</div>';
+            }
+            html += '</div>';
+        }
+        $('#farmField').html(html);
+    }
+
+    // ===================== 轮询 =====================
+    function startPolling() {
+        pollLandStates();
+        pollTimer = setInterval(pollLandStates, 2000);
+        msgPollTimer = setInterval(pollMessages, 2000);
+    }
+
+    function pollLandStates() {
+        $.ajax({
+            url: '/farm/landStates', type: 'GET', dataType: 'json',
+            success: function(res) {
+                if (res.code === 0 && res.lands) {
+                    res.lands.forEach(function(s) {
+                        landStates[s.landIndex] = s;
+                    });
+                    renderAllLands();
+                }
+            },
+            error: function() {}
+        });
+    }
+
+    function pollMessages() {
+        $.ajax({
+            url: '/farm/messages', type: 'GET', dataType: 'json',
+            success: function(msgs) {
+                if (!msgs || !msgs.length) return;
+                msgs.forEach(function(m) {
+                    handleServerMessage(m);
+                });
+                // 消息处理后立即刷新土地状态
+                pollLandStates();
+                loadCurrentPlayer();
+            },
+            error: function() {}
+        });
+    }
+
+    function handleServerMessage(m) {
+        switch (m.type) {
+            case 'planted':
+                Sound.plant();
+                $.messager.show({ title: '播种成功', msg: m.seedName + ' 已种下！' });
+                break;
+            case 'stageChange':
+                Sound.stageChange();
+                break;
+            case 'worm':
+                Sound.wormAlert();
+                $.messager.show({ title: '⚠ 虫害警报', msg: '第' + (m.landIndex+1) + '号地出现虫害！请尽快除虫！' });
+                break;
+            case 'mature':
+                Sound.mature();
+                $.messager.show({ title: '🌾 作物成熟', msg: '第' + (m.landIndex+1) + '号地作物已成熟，可以收获！' });
+                break;
+            case 'wormKilled':
+                Sound.killWorm();
+                $.messager.show({ title: '除虫成功', msg: '虫害已清除！' });
+                break;
+            case 'harvested':
+                Sound.harvest();
+                $.messager.show({ title: '收获成功',
+                    msg: '获得' + m.harvestCount + '个果实！经验+' + m.expGain + ' 金币+' + m.goldGain + ' 积分+' + m.pointGain });
+                break;
+            case 'cleaned':
+                Sound.cleanLand();
+                $.messager.show({ title: '除枯草成功', msg: '经验+5 积分+5 土地已清空' });
+                break;
+        }
+    }
+
+    // ===================== 渲染所有土地 =====================
+    function renderAllLands() {
+        $('.land-plot').each(function() {
+            var $plot = $(this);
+            var idx = parseInt($plot.data('land-index'));
+            var landType = $plot.data('land-type');
+            var state = landStates[idx];
+
+            // 清除旧状态
+            $plot.removeClass('cursor-empty cursor-growing cursor-worm cursor-mature cursor-withered');
+            $plot.find('.crop-icon').remove();
+
+            if (!state || state.status === 'empty') {
+                $plot.addClass('cursor-empty');
+                $plot.attr('title', landType + ' - 可播种');
+            } else if (state.status === 'growing') {
+                $plot.addClass('cursor-growing');
+                $plot.attr('title', (state.seedName || '作物') + ' - 生长中 第' + state.currentStage + '阶段');
+                addCropIcon($plot, state.imageUrl);
+            } else if (state.status === 'worm') {
+                $plot.addClass('cursor-worm');
+                $plot.attr('title', (state.seedName || '作物') + ' - ⚠生虫！点击除虫');
+                addCropIcon($plot, state.imageUrl);
+                if (state.wormImage) addCropIcon($plot, state.wormImage);
+            } else if (state.status === 'mature') {
+                $plot.addClass('cursor-mature');
+                $plot.attr('title', (state.seedName || '作物') + ' - 🌾已成熟，点击收获');
+                addCropIcon($plot, state.imageUrl);
+            } else if (state.status === 'withered') {
+                $plot.addClass('cursor-withered');
+                $plot.attr('title', '枯草 - 点击清除');
+                addCropIcon($plot, state.imageUrl);
+            }
+        });
+    }
+
+    function addCropIcon($plot, url) {
+        var img = $('<img class="crop-icon">');
+        img.attr('src', (url || 'images/unknownUser.png') + '?t=' + Date.now());
+        $plot.append(img);
+    }
+
+    // ===================== 土地点击 =====================
+    $('#farmField').on('click', '.land-plot', function() {
+        var $plot = $(this);
+        var idx = parseInt($plot.data('land-index'));
+        var state = landStates[idx];
+        var status = state ? state.status : 'empty';
+
+        if (!$('#currentNickname').text() || $('#currentNickname').text() === '未知用户') {
+            $.messager.alert('提示', '请先选择用户！');
+            return;
+        }
+
+        switch (status) {
+            case 'empty':    openSeedDialog(idx, $plot.data('land-type')); break;
+            case 'worm':     doKillWorm(idx); break;
+            case 'mature':   doHarvest(idx); break;
+            case 'withered': doCleanLand(idx); break;
+            default:         $.messager.show({ title: '提示', msg: '作物生长中，请耐心等待...' }); break;
+        }
+    });
+
+    // ===================== 播种 =====================
+    function openSeedDialog(landIndex, landType) {
+        selectedLandIndex = landIndex;
+        $('#seedDlgLandType').text(landType);
+        $('#seedCardContainer').html('<div style="color:#999;padding:30px;">加载中...</div>');
+        $('#seedSelectDialog').dialog('open').dialog('center');
+
+        $.ajax({
+            url: '/farm/mySeeds', type: 'GET', dataType: 'json',
+            success: function(seeds) {
+                var matched = seeds.filter(function(s) {
+                    return !s.landRequirement || s.landRequirement === landType;
+                });
+                if (!matched.length) {
+                    $('#seedCardContainer').html(
+                        '<div style="color:#999;padding:30px;">没有适合' + landType + '的种子<br/>请先去商店购买</div>');
+                    return;
+                }
+                var html = '';
+                matched.forEach(function(s) {
+                    html += '<div class="seed-select-card" onclick="doPlant(' + s.seedId + ')">'
+                        + '<img src="' + s.matureImage + '" onerror="this.src=\'images/unknownUser.png\'">'
+                        + '<div class="seed-name">' + esc(s.seedName) + '</div>'
+                        + '<div class="seed-qty">库存：' + s.quantity + '</div>'
+                        + '<div class="seed-req">需要' + (s.landRequirement || '无') + '</div>'
+                        + '</div>';
+                });
+                $('#seedCardContainer').html(html);
+            },
+            error: function() {
+                $('#seedCardContainer').html('<div style="color:#c62828;padding:30px;">加载失败</div>');
+            }
+        });
+    }
+
+    window.doPlant = function(seedId) {
+        $.ajax({
+            url: '/farm/plant', type: 'POST',
+            data: { landIndex: selectedLandIndex, seedId: seedId },
+            dataType: 'json',
+            success: function(res) {
+                if (res.code === 0) {
+                    $('#seedSelectDialog').dialog('close');
+                    pollLandStates();
+                    loadCurrentPlayer();
+                } else {
+                    Sound.fail();
+                    $.messager.alert('播种失败', res.msg, 'error');
+                }
+            },
+            error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+        });
+    };
+
+    // ===================== 除虫 =====================
+    function doKillWorm(landIndex) {
+        $.messager.confirm('除虫', '确定要给这块地除虫吗？', function(r) {
+            if (!r) return;
+            $.ajax({
+                url: '/farm/killWorm', type: 'POST',
+                data: { landIndex: landIndex }, dataType: 'json',
+                success: function(res) {
+                    if (res.code === 0) {
+                        pollLandStates();
+                        loadCurrentPlayer();
+                    } else {
+                        Sound.fail();
+                        $.messager.alert('除虫失败', res.msg, 'error');
+                    }
+                },
+                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+            });
+        });
+    }
+
+    // ===================== 收获 =====================
+    function doHarvest(landIndex) {
+        $.messager.confirm('收获', '确定要收获这块地的作物吗？', function(r) {
+            if (!r) return;
+            $.ajax({
+                url: '/farm/harvest', type: 'POST',
+                data: { landIndex: landIndex }, dataType: 'json',
+                success: function(res) {
+                    if (res.code === 0) {
+                        pollLandStates();
+                        loadCurrentPlayer();
+                    } else {
+                        Sound.fail();
+                        $.messager.alert('收获失败', res.msg, 'error');
+                    }
+                },
+                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+            });
+        });
+    }
+
+    // ===================== 除枯草 =====================
+    function doCleanLand(landIndex) {
+        $.messager.confirm('除枯草', '确定要清除这块地的枯草吗？', function(r) {
+            if (!r) return;
+            $.ajax({
+                url: '/farm/cleanLand', type: 'POST',
+                data: { landIndex: landIndex }, dataType: 'json',
+                success: function(res) {
+                    if (res.code === 0) {
+                        pollLandStates();
+                        loadCurrentPlayer();
+                    } else {
+                        Sound.fail();
+                        $.messager.alert('清除失败', res.msg, 'error');
+                    }
+                },
+                error: function() { Sound.fail(); $.messager.alert('错误', '网络请求失败', 'error'); }
+            });
+        });
+    }
+
+    // ===================== 用户切换 =====================
+    function initUserSwitch() {
+        $('#userCombo').combobox({
+            valueField: 'nickname', textField: 'nickname',
+            formatter: function(row) {
+                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
+                return '<img src="' + avatarFile + '" style="width:32px;height:32px;border-radius:50%;margin-right:8px;vertical-align:middle;" />'
+                    + '<span style="vertical-align:middle;">' + row.nickname + '</span>';
+            }
+        });
+
+        $('#switchUserBtn').bind('click', function() {
+            $.ajax({
+                url: '/player/list', type: 'GET', dataType: 'json',
+                success: function(data) {
+                    $('#userCombo').combobox('clear').combobox('loadData', data);
+                    $('#userSelectDialog').dialog('open');
+                },
+                error: function() { $.messager.alert('错误', '加载玩家列表失败', 'error'); }
+            });
+        });
+
+        $('#confirmUserBtn').bind('click', function() {
+            var selectedUser = $('#userCombo').combobox('getValue');
+            if (!selectedUser) { $.messager.alert('提示', '请先选择一个角色', 'warning'); return; }
+            $.ajax({
+                url: '/player/findByNickname', type: 'GET',
+                data: { nickname: selectedUser }, dataType: 'json',
+                success: function(player) {
+                    if (player) {
+                        $.ajax({
+                            url: '/setCurUser', type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify(player), dataType: 'json',
+                            success: function(response) {
+                                if (response.code === 0) {
+                                    updateUserPanel(response.data);
+                                    $('#userSelectDialog').dialog('close');
+                                    $.messager.show({ title: '成功', msg: '已切换为：' + response.data.nickname });
+                                    landStates = {};
+                                    pollLandStates();
+                                } else {
+                                    $.messager.alert('错误', response.msg, 'error');
+                                }
+                            },
+                            error: function() { $.messager.alert('错误', '服务器通信失败', 'error'); }
+                        });
+                    } else {
+                        $.messager.alert('错误', '未找到该玩家信息', 'error');
+                    }
+                },
+                error: function() { $.messager.alert('错误', '获取角色信息失败', 'error'); }
+            });
+        });
+    }
+
+    function updateUserPanel(player) {
+        currentPlayer = player;
+        $('#currentNickname').text(player.nickname);
+        $('#currentExp').text(player.exp);
+        $('#currentGold').text(player.gold);
+        $('#currentPoints').text(player.points);
+        $('#userAvatar').attr('src', player.avatarUrl || 'images/unknownUser.png');
+    }
+
+    function loadCurrentPlayer() {
+        $.ajax({
+            url: '/player/current', type: 'GET', dataType: 'json',
+            success: function(response) {
+                if (response && response.code === 0 && response.data) {
+                    updateUserPanel(response.data);
+                }
+            },
+            error: function() {}
+        });
+    }
+
+    function esc(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+</script>
+
+</body>
+</html>

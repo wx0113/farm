@@ -7,6 +7,7 @@
     <!-- EasyUI 基础样式和图标 -->
     <link rel="stylesheet" href="easyui/themes/default/easyui.css">
     <link rel="stylesheet" href="easyui/themes/icon.css">
+    <link rel="stylesheet" href="green-theme.css">
     <!-- jQuery 和 EasyUI 核心脚本 -->
     <script src="easyui/jquery.min.js"></script>
     <script src="easyui/jquery.easyui.min.js"></script>
@@ -124,6 +125,7 @@
             width: 40px; height: 40px; display: flex;
             align-items: center; justify-content: center;
             text-decoration: none; cursor: pointer;
+            outline: none; flex-shrink: 0;
         }
         .icon-link img { width: 100%; height: 100%; object-fit: contain; }
         /* 中间内容区 */
@@ -139,23 +141,14 @@
             background-size: auto 100%;
         }
 
-        /* EasyUI 弹窗和面板 - 深绿标题栏 */
-        .panel-header {
-            background: #1b5e20 !important;
-            border-color: #2e7d32 !important;
-        }
-        .panel-title {
-            color: #fff !important;
-        }
-        .panel-tool {
-            color: #fff !important;
-        }
-        .window {
-            border-color: #66bb6a !important;
-        }
-        .window .window-body {
-            background: #c8e6c9 !important;
-        }
+        /* ===== EasyUI 深绿主题 ===== */
+        .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+        .panel-title, .panel-tool { color: #fff !important; }
+        .window { border-color: #66bb6a !important; }
+        .window .window-body, .messager-body { background: #c8e6c9 !important; }
+        .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+        .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+        .messager-icon-question { background: #c8e6c9 !important; }
 
         #tools-imagePositioner-container {
             width: 480px;
@@ -230,8 +223,8 @@
             <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
                 <img src="/images/userSelect.png" alt="切换用户">
             </a>
-            <a href="index.html" class="icon-link" title="首页">
-                <img src="/images/farmLands.png" alt="首页">
+            <a href="farm.html" class="icon-link" title="农场种植">
+                <img src="/images/farmLands.png" alt="农场种植">
             </a>
             <a href="shop.html" class="icon-link" title="商店">
                 <img src="/images/buySeed.png" alt="商店">
@@ -239,7 +232,7 @@
             <a href="player.html" class="icon-link" title="用户管理">
                 <img src="/images/userManager.png" alt="用户管理">
             </a>
-            <a href="#" class="icon-link" title="图鉴">
+            <a href="seed.html" class="icon-link" title="图鉴">
                 <img src="/images/seedManager.png" alt="图鉴">
             </a>
         </div>

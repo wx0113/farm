@@ -6,6 +6,7 @@
     <title>农场管理系统 - 商店</title>
     <link rel="stylesheet" href="easyui/themes/default/easyui.css">
     <link rel="stylesheet" href="easyui/themes/icon.css">
+    <link rel="stylesheet" href="green-theme.css">
     <script src="easyui/jquery.min.js"></script>
     <script src="easyui/jquery.easyui.min.js"></script>
 
@@ -32,6 +33,7 @@
             width: 40px; height: 40px; display: flex;
             align-items: center; justify-content: center;
             text-decoration: none; cursor: pointer;
+            outline: none; flex-shrink: 0;
         }
         .icon-link img { width: 100%; height: 100%; object-fit: contain; }
 
@@ -87,30 +89,31 @@
         .shop-pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
 
         .seed-card-list {
-            flex: 1; display: flex; gap: 12px;
+            flex: 1; display: flex; gap: 18px;
             align-items: stretch;
+            justify-content: center;
         }
         .seed-card {
-            flex: 1; display: flex; flex-direction: column; align-items: center;
+            flex: 0 0 165px;
+            display: flex; flex-direction: column; align-items: center;
             background: url("/images/seedStorageFrame.png") no-repeat center;
             background-size: 100% 100%;
             border-radius: 4px;
-            padding: 14px 10px 10px 10px;
-            min-width: 0;
+            padding: 8px 8px 6px 8px;
         }
         .seed-card-img {
-            width: 80px; height: 80px; object-fit: contain;
+            width: 90px; height: 90px; object-fit: contain;
             border-radius: 8px; background: rgba(232,245,233,0.5);
             flex-shrink: 0;
         }
         .seed-card-name {
-            font-weight: bold; font-size: 14px; color: #1b5e20;
+            font-weight: bold; font-size: 16px; color: #1b5e20;
             margin: 4px 0;
             flex-shrink: 0;
             text-shadow: 0 0 3px rgba(255,255,255,0.9);
         }
         .seed-card-tip {
-            flex: 1; font-size: 11px; color: #444;
+            flex: 1; font-size: 13px; color: #444;
             text-align: center; overflow: auto;
             min-height: 0; padding: 0 4px;
             line-height: 1.4;
@@ -118,13 +121,13 @@
         }
         .seed-card-bottom {
             flex-shrink: 0; display: flex; align-items: center;
-            gap: 10px; margin-top: 6px;
+            gap: 6px; margin-top: 4px;
         }
         .seed-card-price {
-            font-size: 14px; color: #333; font-weight: bold;
+            font-size: 16px; color: #333; font-weight: bold;
         }
         .seed-card-price img {
-            width: 22px; height: 22px; vertical-align: middle; margin-right: 2px;
+            width: 24px; height: 24px; vertical-align: middle; margin-right: 2px;
         }
         .btn-buy {
             padding: 5px 16px; border: none; border-radius: 5px;
@@ -190,6 +193,15 @@
             background: url("/images/bottom.png") repeat-x left center;
             background-size: auto 100%;
         }
+
+        /* ===== EasyUI 深绿主题 ===== */
+        .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+        .panel-title, .panel-tool { color: #fff !important; }
+        .window { border-color: #66bb6a !important; }
+        .window .window-body, .messager-body { background: #c8e6c9 !important; }
+        .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+        .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+        .messager-icon-question { background: #c8e6c9 !important; }
     </style>
 </head>
 <body>
@@ -204,20 +216,20 @@
             </div>
         </div>
         <div class="top-buttons">
-            <a href="index.html" class="icon-link" title="首页">
-                <img src="/images/farmLands.png" alt="首页">
+            <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
+                <img src="/images/userSelect.png" alt="切换用户">
             </a>
-            <a href="shop.html" class="icon-link" title="商店" style="opacity:0.5; cursor:default;">
+            <a href="farm.html" class="icon-link" title="农场种植">
+                <img src="/images/farmLands.png" alt="农场种植">
+            </a>
+            <a href="shop.html" class="icon-link" title="商店">
                 <img src="/images/buySeed.png" alt="商店">
-            </a>
-            <a href="#" class="icon-link" title="仓库">
-                <img src="/images/store.png" alt="仓库">
             </a>
             <a href="player.html" class="icon-link" title="用户管理">
                 <img src="/images/userManager.png" alt="用户管理">
             </a>
-            <a href="index.html" class="icon-link" title="切换用户">
-                <img src="/images/userSelect.png" alt="切换用户">
+            <a href="seed.html" class="icon-link" title="图鉴">
+                <img src="/images/seedManager.png" alt="图鉴">
             </a>
         </div>
     </div>
@@ -255,8 +267,9 @@
 </div>
 
 <script>
-    var shopPage = 1, shopTotal = 0, mySeeds = [], storagePage = 0;
+    var shopPage = 1, shopTotalPages = 1, mySeeds = [], storagePage = 0;
     var pageSize = 4;
+    var shopLoading = false, storageLoading = false;
 
     $(function() {
         loadCurrentPlayer();
@@ -289,18 +302,29 @@
 
     // ========== 种子商城 ==========
     function loadShopSeeds() {
+        if (shopLoading) return;
+        shopLoading = true;
+        $('#shopPrevBtn, #shopNextBtn').prop('disabled', true);
+        $('#shopPageInfo').text('加载中...');
         $.ajax({
             url: '/shop/seeds', type: 'GET', dataType: 'json',
             data: { page: shopPage, rows: pageSize },
+            timeout: 5000,
             success: function(data) {
-                shopTotal = data.total || 0;
-                renderSeedCards(data.rows || []);
-                var totalPages = Math.ceil(shopTotal / pageSize) || 1;
-                $('#shopPageInfo').text('第 ' + shopPage + ' 页 / 共 ' + totalPages + ' 页');
+                var rows = data.rows || [];
+                var total = data.total || 0;
+                shopTotalPages = Math.ceil(total / pageSize) || 1;
+                if (shopPage > shopTotalPages) { shopPage = shopTotalPages; }
+                if (shopPage < 1) { shopPage = 1; }
+                renderSeedCards(rows);
+                $('#shopPageInfo').text('第 ' + shopPage + ' 页 / 共 ' + shopTotalPages + ' 页');
                 $('#shopPrevBtn').prop('disabled', shopPage <= 1);
-                $('#shopNextBtn').prop('disabled', shopPage * pageSize >= shopTotal);
+                $('#shopNextBtn').prop('disabled', shopPage >= shopTotalPages);
             },
-            error: function() { $.messager.alert('错误', '加载种子失败'); }
+            error: function(xhr, status) {
+                if (status !== 'abort') $.messager.alert('错误', '加载种子失败');
+            },
+            complete: function() { shopLoading = false; }
         });
     }
 
@@ -326,8 +350,16 @@
         $container.html(html);
     }
 
-    function shopPrevPage() { if (shopPage > 1) { shopPage--; loadShopSeeds(); } }
-    function shopNextPage() { if (shopPage * pageSize < shopTotal) { shopPage++; loadShopSeeds(); } }
+    function shopPrevPage() {
+        if (shopLoading || shopPage <= 1) return;
+        shopPage--;
+        loadShopSeeds();
+    }
+    function shopNextPage() {
+        if (shopLoading || shopPage >= shopTotalPages) return;
+        shopPage++;
+        loadShopSeeds();
+    }
 
     // ========== 购买逻辑 ==========
     function buySeed(seedId, btn) {
@@ -369,14 +401,21 @@
 
     // ========== 我的种子仓库 ==========
     function loadMySeeds() {
+        storageLoading = true;
         $.ajax({
             url: '/shop/mySeeds', type: 'GET', dataType: 'json',
+            timeout: 5000,
             success: function(data) {
                 mySeeds = data || [];
-                storagePage = 0;
+                if (storagePage * pageSize >= mySeeds.length) storagePage = 0;
                 renderStorage();
             },
-            error: function() { mySeeds = []; renderStorage(); }
+            error: function(xhr, status) {
+                mySeeds = [];
+                renderStorage();
+                if (status !== 'abort') $.messager.alert('错误', '加载种子仓库失败');
+            },
+            complete: function() { storageLoading = false; }
         });
     }
 
@@ -415,8 +454,17 @@
         }
     }
 
-    function storagePrevPage() { if (storagePage > 0) { storagePage--; renderStorage(); } }
-    function storageNextPage() { if ((storagePage + 1) * pageSize < mySeeds.length) { storagePage++; renderStorage(); } }
+    function storagePrevPage() {
+        if (storageLoading || storagePage <= 0) return;
+        storagePage--;
+        renderStorage();
+    }
+    function storageNextPage() {
+        var totalPages = Math.ceil(mySeeds.length / pageSize) || 1;
+        if (storageLoading || storagePage >= totalPages - 1) return;
+        storagePage++;
+        renderStorage();
+    }
 
     function escapeHtml(str) {
         if (!str) return '';

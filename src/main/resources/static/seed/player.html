@@ -6,6 +6,7 @@
     <title>玩家信息管理</title>
     <link rel="stylesheet" href="easyui/themes/default/easyui.css">
     <link rel="stylesheet" href="easyui/themes/icon.css">
+    <link rel="stylesheet" href="green-theme.css">
     <script src="easyui/jquery.min.js"></script>
     <script src="easyui/jquery.easyui.min.js"></script>
 
@@ -32,6 +33,7 @@
             width: 40px; height: 40px; display: flex;
             align-items: center; justify-content: center;
             text-decoration: none; cursor: pointer;
+            outline: none; flex-shrink: 0;
         }
         .icon-link img { width: 100%; height: 100%; object-fit: contain; }
 
@@ -174,9 +176,14 @@
         }
         .toast.error { background: #c62828; }
 
-        /* Panel样式覆盖 */
-        .panel-header { background: #1b5e20 !important; }
-        .window .window-body { background: #c8e6c9 !important; }
+        /* ===== EasyUI 深绿主题 ===== */
+        .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+        .panel-title, .panel-tool { color: #fff !important; }
+        .window { border-color: #66bb6a !important; }
+        .window .window-body, .messager-body { background: #c8e6c9 !important; }
+        .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+        .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+        .messager-icon-question { background: #c8e6c9 !important; }
 
         .bottom-frame {
             height: 40px;
@@ -192,16 +199,16 @@
             <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
                 <img src="/images/userSelect.png" alt="切换用户">
             </a>
-            <a href="index.html" class="icon-link" title="首页">
-                <img src="/images/farmLands.png" alt="首页">
+            <a href="farm.html" class="icon-link" title="农场种植">
+                <img src="/images/farmLands.png" alt="农场种植">
             </a>
             <a href="shop.html" class="icon-link" title="商店">
                 <img src="/images/buySeed.png" alt="商店">
             </a>
-            <a href="player.html" class="icon-link" title="用户管理" style="opacity:0.5; cursor:default;">
+            <a href="player.html" class="icon-link" title="用户管理">
                 <img src="/images/userManager.png" alt="用户管理">
             </a>
-            <a href="#" class="icon-link" title="图鉴">
+            <a href="seed.html" class="icon-link" title="图鉴">
                 <img src="/images/seedManager.png" alt="图鉴">
             </a>
         </div>

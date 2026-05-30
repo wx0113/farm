@@ -8,6 +8,7 @@
     <!-- CSS 用本地，图标走在线 -->
     <link rel="stylesheet" href="easyui/themes/default/easyui.css">
     <link rel="stylesheet" href="easyui/themes/icon.css">
+    <link rel="stylesheet" href="green-theme.css">
 
     <!-- JS 用本地 -->
     <script src="easyui/jquery.min.js"></script>
@@ -43,21 +44,13 @@
         }
 
         /* 图标按钮样式 */
-        .icon-btn {
-            width: 40px;
-            height: 40px;
-            background-color: transparent;
-            border: none;
-            cursor: pointer;
-            padding: 0;
+        .icon-link {
+            width: 40px; height: 40px; display: flex;
+            align-items: center; justify-content: center;
+            text-decoration: none; cursor: pointer;
+            outline: none; flex-shrink: 0;
         }
-
-        .icon-btn img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
+        .icon-link img { width: 100%; height: 100%; object-fit: contain; }
 
         /* 中间欢迎区 */
         .middle-frame {
@@ -113,6 +106,15 @@
         .item-text {
             vertical-align: middle;
         }
+
+        /* ===== EasyUI 深绿主题 ===== */
+        .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+        .panel-title, .panel-tool { color: #fff !important; }
+        .window { border-color: #66bb6a !important; }
+        .window .window-body, .messager-body { background: #c8e6c9 !important; }
+        .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+        .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+        .messager-icon-question { background: #c8e6c9 !important; }
     </style>
 </head>
 <body>
@@ -132,21 +134,21 @@
 
         <!-- 右上角五个图标按钮 -->
         <div class="top-buttons">
-            <button class="icon-btn" id="switchUserBtn" title="切换用户">
+            <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
                 <img src="/images/userSelect.png" alt="切换用户">
-            </button>
-            <button class="icon-btn" onclick="navigate('seed.html')" title="种子">
-                <img src="/images/farmLands.png" alt="种子">
-            </button>
-            <button class="icon-btn" onclick="navigate('shop.html')" title="商店">
+            </a>
+            <a href="farm.html" class="icon-link" title="农场种植">
+                <img src="/images/farmLands.png" alt="农场种植">
+            </a>
+            <a href="shop.html" class="icon-link" title="商店">
                 <img src="/images/buySeed.png" alt="商店">
-            </button>
-            <button class="icon-btn" onclick="navigate('#')" title="仓库">
-                <img src="/images/seedManager.png" alt="仓库">
-            </button>
-            <button class="icon-btn" onclick="navigate('player.html')" title="用户管理">
+            </a>
+            <a href="player.html" class="icon-link" title="用户管理">
                 <img src="/images/userManager.png" alt="用户管理">
-            </button>
+            </a>
+            <a href="seed.html" class="icon-link" title="图鉴">
+                <img src="/images/seedManager.png" alt="图鉴">
+            </a>
         </div>
     </div>
 
@@ -178,10 +180,6 @@
 </div>
 
 <script>
-    function navigate(path) {
-        window.location.href = path;
-    }
-
     $(function() {
         // 初始化下拉框
         $('#userCombo').combobox({

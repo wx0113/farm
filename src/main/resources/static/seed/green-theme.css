@@ -1,0 +1,90 @@
+/* ============================================
+   深绿色主题 - 全局覆盖所有白色区域
+   排除：搜索框、分页数字显示
+   ============================================ */
+
+/* ---- 滚动条 ---- */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: #1b5e20; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #43a047; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #66bb6a; }
+::-webkit-scrollbar-corner { background: #1b5e20; }
+
+/* ---- EasyUI Panel / Dialog ---- */
+.panel-body,
+.window-body,
+.window .panel-body,
+.dialog .panel-body {
+    background: #c8e6c9 !important;
+}
+.panel-header {
+    background: #1b5e20 !important;
+    border-color: #2e7d32 !important;
+}
+.panel-title, .panel-tool { color: #fff !important; }
+.window { border-color: #66bb6a !important; }
+.window .window-body, .messager-body { background: #c8e6c9 !important; }
+
+/* ---- EasyUI 按钮 ---- */
+.l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+.l-btn:hover { background: #2e7d32 !important; }
+.l-btn-plain { background: transparent !important; color: #fff !important; border-color: transparent !important; }
+.l-btn-plain:hover { background: rgba(255,255,255,0.15) !important; }
+.messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
+.messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
+
+/* ---- EasyUI DataGrid ---- */
+.datagrid-header-row td,
+.datagrid-header {
+    background: #1b5e20 !important;
+    color: #fff !important;
+    border-color: #2e7d32 !important;
+}
+.datagrid-body { background: #c8e6c9 !important; }
+.datagrid-row td { background: #c8e6c9 !important; color: #333 !important; border-color: #a5d6a7 !important; }
+.datagrid-row:nth-child(even) td { background: #a5d6a7 !important; }
+.datagrid-row:hover td { background: #81c784 !important; }
+.datagrid-row.datagrid-row-selected td { background: #fff9c4 !important; }
+.datagrid-pager { background: #2e7d32 !important; border-color: #1b5e20 !important; }
+.datagrid-pager a { color: #fff !important; }
+/* 分页数字显示 - 保留可读性 */
+.datagrid-pager .pagination-num { color: #fff !important; }
+
+/* ---- EasyUI ComboBox ---- */
+.combo-panel { background: #c8e6c9 !important; border-color: #66bb6a !important; }
+.combobox-item { background: #c8e6c9 !important; color: #333 !important; }
+.combobox-item:hover { background: #81c784 !important; }
+.combobox-item-selected { background: #a5d6a7 !important; }
+
+/* ---- EasyUI TextBox / NumberBox / Spinner (不覆盖搜索框的白色背景) ---- */
+.textbox { border-color: #66bb6a !important; }
+.textbox .textbox-text { background: #e8f5e9 !important; color: #333 !important; }
+.textbox .textbox-border { border-color: #66bb6a !important; }
+
+/* ---- EasyUI Tabs ---- */
+.tabs-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
+.tabs-header .tabs { background: #1b5e20 !important; }
+.tabs-header .tabs li a.tabs-inner { background: #2e7d32 !important; color: #fff !important; border-color: #2e7d32 !important; }
+.tabs-header .tabs li.tabs-selected a.tabs-inner { background: #c8e6c9 !important; color: #1b5e20 !important; }
+.tabs-panel { background: #c8e6c9 !important; }
+
+/* ---- EasyUI Messager ---- */
+.messager-body { background: #c8e6c9 !important; color: #333 !important; }
+.messager-icon { background: transparent !important; }
+
+/* ---- EasyUI 表单 ---- */
+.easyui-dialog, .easyui-window { background: #c8e6c9 !important; }
+form td { color: #333 !important; }
+
+/* ---- 通用表格 ---- */
+table { background: #c8e6c9 !important; }
+th { background: #1b5e20 !important; color: #fff !important; }
+td { background: #c8e6c9 !important; color: #333 !important; }
+
+/* ---- 通用输入框（允许保留白色/浅色背景的不在此列表中） ---- */
+select, textarea { background: #e8f5e9 !important; color: #333 !important; border-color: #66bb6a !important; }
+input[type="text"]:not(.search-box):not(.datagrid-pager input),
+input[type="number"]:not(.datagrid-pager input),
+input[type="password"] {
+    background: #e8f5e9 !important; color: #333 !important; border-color: #66bb6a !important;
+}

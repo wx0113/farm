@@ -151,7 +151,7 @@
         .messager-icon-question { background: #c8e6c9 !important; }
 
         #tools-imagePositioner-container {
-            width: 480px;
+            width: 440px;
             height: 440px;
             border: 1px solid #66bb6a;
             background-color: #c8e6c9;
@@ -295,6 +295,7 @@
                             <select class="easyui-combobox" name="landRequirement" panelHeight="auto" style="width:100%">
                                 <option value="黄土地">黄土地</option>
                                 <option value="黑土地">黑土地</option>
+                                <option value="金土地">金土地</option>
                                 <option value="沙土地">沙土地</option>
                             </select>
                         </td></tr>
@@ -341,13 +342,12 @@
                 <form id="stageEditorForm" method="post" novalidate>
                     <input type="hidden" name="id">
                     <input type="hidden" name="seedId" id="stageSeedId">
-                    <input type="hidden" name="cropImage" id="cropImage">
-                    <table cellpadding="8">
+                                        <table cellpadding="8">
                         <tr><td>阶段序号:</td><td><input class="easyui-numberspinner" name="stageOrder" data-options="min:0,max:10" style="width:100%"></td></tr>
                         <tr><td>阶段标题:</td><td><input class="easyui-textbox" name="stageTitle" style="width:100%"></td></tr>
                         <tr><td>阶段时长(秒):</td><td><input class="easyui-numberspinner" name="stageDuration" style="width:100%"></td></tr>
                         <tr><td>生虫概率:</td><td><input class="easyui-numberbox" name="pestProbability" precision="2" min="0" max="1" style="width:100%"></td></tr>
-                        <tr><td>图片路径:</td><td><input class="easyui-textbox" name="imageUrl" style="width:100%"></td></tr>
+                        <input type="hidden" name="imageUrl">
                         <tr><td>图片宽度:</td><td><input class="easyui-numberspinner" name="imageWidth" style="width:100%"></td></tr>
                         <tr><td>图片高度:</td><td><input class="easyui-numberspinner" name="imageHeight" style="width:100%"></td></tr>
                         <tr><td>offsetX:</td><td><input class="easyui-numberspinner" name="imageOffsetX" style="width:100%"></td></tr>
@@ -370,7 +370,7 @@
             </div>
 
             <!-- 图片位置编辑弹窗 -->
-            <div id="positionDialog" class="easyui-dialog" style="width:520px;height:550px;padding:10px" closed="true">
+            <div id="positionDialog" class="easyui-dialog" title="作物定位" style="width:520px;height:550px;padding:10px" closed="true">
                 <div id="tools-imagePositioner-container">
                     <!-- 底层：positioning.png 基底 -->
                     <img id="positionBg" style="width:100%; height:100%; object-fit:contain;">
@@ -403,6 +403,7 @@
     // 全局变量
     var grid = $("#seedGrid");
     var currentSeedId = null;
+    var currentStageCropStatus = ''; // 跟踪当前编辑阶段的 cropStatus，用于定位器判断枯萎
 
     // 格式化秒数为时分秒 (HH:MM:SS)
     function formatSeconds(value) {
@@ -435,20 +436,19 @@
             valueField: 'nickname', textField: 'nickname',
             formatter: function(row) {
                 var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
-                return '<img class="item-img" src="' + avatarFile + '" /><span>' + row.nickname + '</span>';
+                return '<div style="display:flex;align-items:center;gap:10px;">'
+                    + '<img class="item-img" src="' + avatarFile + '" />'
+                    + '<div>'
+                    + '<span style="font-weight:bold;">' + (row.nickname || '') + '</span>'
+                    + '<div style="font-size:11px;color:#555;margin-top:2px;">'
+                    + '经验:' + (row.exp || 0) + ' | 金币:' + (row.gold || 0) + ' | 积分:' + (row.points || 0)
+                    + '</div></div></div>';
             }
         });
 
-        // 绑定切换用户按钮事件
+        // 绑定切换用户按钮事件 — 跳转至首页登录
         $('#switchUserBtn').bind('click', function() {
-            $.ajax({
-                url: '/player/list', type: 'GET', dataType: 'json',
-                success: function(data) {
-                    $('#userCombo').combobox('clear').combobox('loadData', data);
-                    $('#userSelectDialog').dialog('open');
-                },
-                error: function() { $.messager.alert('错误', '加载玩家列表失败', 'error'); }
-            });
+            window.location.href = 'index.html';
         });
 
         // 绑定确认切换用户按钮事件
@@ -478,9 +478,9 @@
         // 加载当前登录用户信息
         loadCurrentPlayer();
 
-        // 绑定图片位置弹窗的按钮事件
-        $('#btnCropConfirm').bind('click', function() { gainPostion(); });
-        $('#btnCropCancel').bind('click', function() { $('#positionDialog').dialog('close'); });
+        // 绑定图片位置弹窗的按钮事件（用事件委托，EasyUI 不会覆盖）
+        $(document).on('click', '#btnCropConfirm', function() { gainPostion(); });
+        $(document).on('click', '#btnCropCancel', function() { $('#positionDialog').dialog('close'); });
 
         // 初始化种子数据表格
         initSeedGrid();
@@ -580,7 +580,7 @@
                   editor: { type: 'numberbox', options: { precision: 2, min: 0 } } },
                 { field: 'landRequirement', title: '土地需求', width: 80, align: 'center',
                   editor: { type: 'combobox', options: {
-                      data: [{value:'黄土地',text:'黄土地'},{value:'黑土地',text:'黑土地'},{value:'沙土地',text:'沙土地'}],
+                      data: [{value:'黄土地',text:'黄土地'},{value:'黑土地',text:'黑土地'},{value:'金土地',text:'金土地'},{value:'沙土地',text:'沙土地'}],
                       valueField:'value', textField:'text', panelHeight:'auto' } } },
                 { field: 'points', title: '可获积分', width: 100, align: 'center', formatter: formatPoints,
                   editor: { type: 'numberspinner', options: { min: 0 } } },
@@ -757,11 +757,18 @@
         });
     }
 
-    // 新增成长阶段行
+    // 新增成长阶段行（打开空白表单，保存后才写入数据库）
     function addStageRow() {
+        currentStageCropStatus = ''; // 新增默认非枯萎
         $('#stageEditorForm').form('clear');
         $('#stageEditorForm').find('input[name="id"]').val('');
         $('#stageSeedId').val(currentSeedId);
+        // 清空定位相关字段，避免残留旧值
+        setSpinnerValue('imageWidth', 0);
+        setSpinnerValue('imageHeight', 0);
+        setSpinnerValue('imageOffsetX', 0);
+        setSpinnerValue('imageOffsetY', 0);
+        $('#stageEditorForm input[name="imageUrl"]').val('');
         $('#stageFormDialog').dialog('open').dialog('center');
     }
 
@@ -769,8 +776,21 @@
     function editStageRow() {
         var row = $('#stageGrid').datagrid('getSelected');
         if (!row) { $.messager.alert('提示', '请先选择一行'); return; }
+        currentStageCropStatus = row.cropStatus || '';
         $('#stageEditorForm').form('load', row);
+        // form.load 不更新 numberspinner 底层 input 的 val，手动同步给定位器读
+        syncFormInputs(row);
         $('#stageFormDialog').dialog('open').dialog('center');
+    }
+
+    // 把数据的像素字段同步到表单底层 input（EasyUI form.load 不会更新 DOM value）
+    function syncFormInputs(data) {
+        if (!data) return;
+        $('#stageEditorForm input[name="imageWidth"]').val(data.imageWidth || '');
+        $('#stageEditorForm input[name="imageHeight"]').val(data.imageHeight || '');
+        $('#stageEditorForm input[name="imageOffsetX"]').val(data.imageOffsetX || '');
+        $('#stageEditorForm input[name="imageOffsetY"]').val(data.imageOffsetY || '');
+        $('#stageEditorForm input[name="imageUrl"]').val(data.imageUrl || '');
     }
 
     // 保存成长阶段表单
@@ -790,6 +810,17 @@
         formData.imageOffsetX = parseInt(formData.imageOffsetX || 0);
         formData.imageOffsetY = parseInt(formData.imageOffsetY || 0);
         formData.id = formData.id ? parseInt(formData.id) : null;
+
+        // 自动补全 imageUrl：枯萎阶段固定枯草图，stage 1 固定种子图，其余按种子ID和阶段序号拼接
+        if (!formData.imageUrl || formData.imageUrl === 'undefined') {
+            if (currentStageCropStatus === '枯萎') {
+                formData.imageUrl = '/images/crops/basic/9.png';
+            } else if (formData.stageOrder === 1) {
+                formData.imageUrl = '/images/crops/basic/0.png';
+            } else {
+                formData.imageUrl = '/images/crops/' + formData.seedId + '/' + formData.stageOrder + '.png';
+            }
+        }
 
         $.ajax({
             url: '/seed/growth/save', type: 'POST', contentType: 'application/json',
@@ -834,8 +865,25 @@
         $.messager.show({ title: '提示', msg: '请使用编辑按钮修改后保存' });
     }
 
-    // 打开图片位置编辑弹窗
-    // 拖拽/缩放时自动同步宽高偏移到表单
+    // 计算 positioning.png 中土地区域的显示坐标（440×440 容器内）
+    // positioning.png: 200×300，土地在底部（与 land.png 201×102 对应，约占底部 102/300）
+    function getPositionerLandArea() {
+        var cw = 440, ch = 440;
+        var imgW = 200, imgH = 300;
+        var imgRatio = imgW / imgH;       // 0.667
+        // 图比容器瘦 → 填满高度，左右留白
+        var displayH = ch;                // 440
+        var displayW = cw * imgRatio;     // 293
+        var offsetLeft = (cw - displayW) / 2; // 74
+        // 土地在图片底部，占 102/300（与 land.png 高度一致）
+        var landImgTop = (imgH - 102) / imgH;   // 0.66
+        var landImgHeight = 102.0 / imgH;        // 0.34
+        var landTop = landImgTop * displayH;     // 290
+        var landHeight = landImgHeight * displayH; // 150
+        return { left: offsetLeft, top: Math.round(landTop), width: Math.round(displayW), height: Math.round(landHeight) };
+    }
+
+    // 拖拽/缩放时自动同步像素值到表单（相对于土地区域左上角，允许超出土地区域）
     function updateFormFromOverlay() {
         var overlay = $('#stageOverlay');
         var w = overlay.width();
@@ -843,10 +891,50 @@
         var x = parseInt(overlay.css('left')) || 0;
         var y = parseInt(overlay.css('top')) || 0;
 
-        $('#stageEditorForm input[name="imageWidth"]').val(w);
-        $('#stageEditorForm input[name="imageHeight"]').val(h);
-        $('#stageEditorForm input[name="imageOffsetX"]').val(x);
-        $('#stageEditorForm input[name="imageOffsetY"]').val(y);
+        var land = getPositionerLandArea();
+        // offsetX/offsetY = 容器坐标 - 土地区域左上角（可以为负数，表示在土地区域上方/左侧）
+        var rx = x - land.left;
+        var ry = y - land.top;
+        var nx = Math.round(rx);
+        var ny = Math.round(ry);
+        var nw = Math.round(w);
+        var nh = Math.round(h);
+
+        // 同步到表单：同时更新底层 input 和 EasyUI numberspinner 显示
+        setSpinnerValue('imageWidth', nw);
+        setSpinnerValue('imageHeight', nh);
+        setSpinnerValue('imageOffsetX', nx);
+        setSpinnerValue('imageOffsetY', ny);
+    }
+
+    // 从表单读取像素值（兼容 EasyUI numberspinner 和普通 input）
+    function getSpinnerValue(name) {
+        var $el = $('#stageEditorForm input[name="' + name + '"]');
+        // 优先用 EasyUI numberspinner 的 getValue
+        try {
+            var v = $el.numberspinner('getValue');
+            if (v !== null && v !== undefined && v !== '') return parseInt(v);
+        } catch(e) {}
+        // 降级：直接读 DOM value
+        var raw = $el.val();
+        return (raw !== null && raw !== undefined && raw !== '') ? parseInt(raw) : null;
+    }
+
+    // 同时更新 EasyUI numberspinner 显示和底层 input 值，确保表单 serializeArray 能读到
+    function setSpinnerValue(name, val) {
+        var $el = $('#stageEditorForm input[name="' + name + '"]');
+        // 先更新底层 DOM 值（保证 serializeArray 读取正确）
+        $el.val(val);
+        // 再通知 EasyUI 刷新显示
+        try { $el.numberspinner('setValue', val); } catch(e) {}
+        // 如果 numberspinner 未初始化，尝试初始化后再设值
+        if ($el.parent().find('.numberspinner-text').length > 0) {
+            $el.parent().find('.numberspinner-text').val(val);
+        }
+    }
+
+    function syncSpinner(name, val) {
+        setSpinnerValue(name, val);
     }
 
     // 打开图片位置编辑弹窗
@@ -859,34 +947,74 @@
             return;
         }
 
+        // 先打开弹窗（否则容器宽高为0）
+        $('#positionDialog').dialog('open').dialog('center');
+
         // 设置基底图片
         $('#positionBg').attr('src', '/images/positioning.png?t=' + new Date().getTime());
 
-        // 构建阶段图片路径: /images/crops/{seedId}/{stageOrder}.png
-        var cropPath = '/images/crops/' + seedId + '/' + stageOrder + '.png';
+        // 构建阶段图片路径
+        // 枯萎：统一用 /images/crops/basic/9.png，不拼接种子ID
+        // stage 1：用 /images/crops/basic/0.png
+        // 其余阶段：用已保存的 imageUrl 或按种子ID+阶段序号拼接
+        var savedUrl = $.trim($('#stageEditorForm input[name="imageUrl"]').val());
+        var cropPath;
+        if (currentStageCropStatus === '枯萎') {
+            cropPath = '/images/crops/basic/9.png';
+        } else if (stageOrder === 1) {
+            cropPath = '/images/crops/basic/0.png';
+        } else {
+            // 校验 savedUrl 是否属于当前种子（排除指向其他种子目录的脏数据）
+            var expectedPrefix = '/images/crops/' + seedId + '/';
+            var isValidSaved = savedUrl && savedUrl.indexOf(expectedPrefix) === 0;
+            cropPath = isValidSaved ? savedUrl : ('/images/crops/' + seedId + '/' + stageOrder + '.png');
+        }
 
-        // 读取之前保存的尺寸和位置
-        var w = parseInt($('#stageEditorForm input[name="imageWidth"]').val()) || 80;
-        var h = parseInt($('#stageEditorForm input[name="imageHeight"]').val()) || 80;
-        var x = parseInt($('#stageEditorForm input[name="imageOffsetX"]').val()) || 50;
-        var y = parseInt($('#stageEditorForm input[name="imageOffsetY"]').val()) || 50;
+        var land = getPositionerLandArea();
+        // 读取表单中的像素值（用 getSpinnerValue 兼容 EasyUI numberspinner）
+        var pxW = getSpinnerValue('imageWidth') || Math.round(land.width * 0.68);
+        var pxH = getSpinnerValue('imageHeight') || Math.round(land.height * 0.68);
+        var pxX = getSpinnerValue('imageOffsetX') || 0;
+        var pxY = getSpinnerValue('imageOffsetY') || 0;
+
+        // 只限制最小尺寸，不限制位置（允许超出土地区域）
+        pxW = Math.max(10, pxW);
+        pxH = Math.max(10, pxH);
+
+        // 转换为容器坐标：加上土地区域偏移
+        $('#stageOverlay').css({
+            width: pxW, height: pxH,
+            left: pxX + land.left, top: pxY + land.top,
+            display: 'block'
+        });
 
         // 销毁旧的可拖拽/缩放实例
         try { $('#stageOverlay').resizable('destroy'); } catch(e) {}
         try { $('#stageOverlay').draggable('destroy'); } catch(e) {}
 
-        // 设置初始位置和大小
-        $('#stageOverlay').css({ width: w, height: h, left: x, top: y, display: 'block' });
+        // 获取 positioning.png 在容器内的完整显示区域，作为拖拽/缩放边界
+        function getPositionerImageBounds() {
+            var cw = 440, ch = 440;
+            var imgW = 200, imgH = 300;
+            var imgRatio = imgW / imgH;
+            var displayH = ch;
+            var displayW = cw * imgRatio;     // 293
+            var offsetLeft = (cw - displayW) / 2; // 74
+            return { left: offsetLeft, top: 0, width: displayW, height: displayH };
+        }
 
-        // 绑定图片加载完成事件
+        // 绑定图片加载完成事件：拖拽/缩放限制在完整 positioning.png 显示区域内
         var img = $('#stageOverlay');
         img.off('load.positioner');
         img.on('load.positioner', function() {
+            var imageBounds = getPositionerImageBounds();
+            var bounds = [imageBounds.left, imageBounds.top,
+                          imageBounds.left + imageBounds.width, imageBounds.top + imageBounds.height];
             $(this).draggable({
-                containment: 'parent',
+                containment: bounds,
                 drag: updateFormFromOverlay
             }).resizable({
-                containment: 'parent',
+                containment: bounds,
                 handles: 'all',
                 resize: updateFormFromOverlay,
                 aspectRatio: true
@@ -895,6 +1023,12 @@
         });
 
         img.attr('src', cropPath + '?t=' + new Date().getTime());
+        // 加载失败时兜底为空白图
+        img.one('error', function() {
+            if (this.src.indexOf('/images/crops/basic/blank.png') === -1) {
+                this.src = '/images/crops/basic/blank.png';
+            }
+        });
 
         // 处理已缓存的图片（load事件已触发过）
         if (img[0].complete) {
@@ -903,85 +1037,37 @@
 
         // 自动填充图片路径字段
         $('#stageEditorForm input[name="imageUrl"]').val(cropPath);
-
-        $('#positionDialog').dialog('open').dialog('center');
     }
 
-    // 确定 → 合成基底+阶段图 → 保存到本地 → 路径写入数据库
+    // 确定 → 读取定位器位置 → 关闭定位器 → 刷新成长阶段详情表单（不保存到DB）
     function gainPostion() {
-        updateFormFromOverlay();
+        // 直接从 overlay 读取最终位置
+        var overlay = $('#stageOverlay');
+        var w = Math.round(overlay.width());
+        var h = Math.round(overlay.height());
+        var x = parseInt(overlay.css('left')) || 0;
+        var y = parseInt(overlay.css('top')) || 0;
+        var land = getPositionerLandArea();
+        var rx = Math.round(x - land.left);
+        var ry = Math.round(y - land.top);
 
-        var positionBg = $('#positionBg')[0];
-        var stageOverlay = $('#stageOverlay')[0];
+        // 先关闭定位弹窗
+        $('#positionDialog').dialog('close');
 
-        if (!positionBg.complete || !stageOverlay.complete) {
-            $.messager.alert('错误', '图片尚未加载完成，请稍后重试');
-            return;
-        }
-
-        // 合成 positioning.png + 阶段图片
-        var bgW = positionBg.naturalWidth;
-        var bgH = positionBg.naturalHeight;
-
-        var canvas = document.createElement('canvas');
-        canvas.width = bgW;
-        canvas.height = bgH;
-        var ctx = canvas.getContext('2d');
-
-        // 1. 画基底
-        ctx.drawImage(positionBg, 0, 0, bgW, bgH);
-
-        // 2. 画阶段图片（缩放至实际像素坐标）
-        var container = $('#tools-imagePositioner-container');
-        var scaleX = bgW / container.width();
-        var scaleY = bgH / container.height();
-
-        var ow = $('#stageOverlay').width();
-        var oh = $('#stageOverlay').height();
-        var ox = parseInt($('#stageOverlay').css('left')) || 0;
-        var oy = parseInt($('#stageOverlay').css('top')) || 0;
-
-        ctx.drawImage(stageOverlay,
-            Math.round(ox * scaleX), Math.round(oy * scaleY),
-            Math.round(ow * scaleX), Math.round(oh * scaleY));
-
-        // 3. Canvas → Blob → 上传
-        var dataURL = canvas.toDataURL('image/png');
-        var binaryStr = atob(dataURL.split(',')[1]);
-        var byteArray = new Uint8Array(binaryStr.length);
-        for (var i = 0; i < binaryStr.length; i++) {
-            byteArray[i] = binaryStr.charCodeAt(i);
-        }
-        var blob = new Blob([byteArray], { type: 'image/png' });
-
-        var formData = new FormData();
-        formData.append('image', blob, 'positioned.png');
-
-        var oldPath = $('#stageEditorForm input[name="cropImage"]').val();
-        if (oldPath) {
-            formData.append('oldPath', oldPath);
-        }
-
-        $.ajax({
-            url: '/seed/growth/cropImage',
-            type: 'POST',
-            data: formData,
-            contentType: false,
-            processData: false,
-            success: function(res) {
-                if (res.code === 0) {
-                    $('#stageEditorForm input[name="cropImage"]').val(res.data);
-                    $.messager.show({ title: '成功', msg: '位置图片已保存' });
-                } else {
-                    $.messager.alert('错误', res.msg || '保存失败');
-                }
-                $('#positionDialog').dialog('close');
-            },
-            error: function() {
-                $.messager.alert('错误', '保存失败');
-                $('#positionDialog').dialog('close');
-            }
+        // 收集表单当前所有值，合并定位字段的新值，用 form('load') 整体刷新
+        // 这样 EasyUI numberspinner/textbox 等组件都会正确更新显示
+        var formData = {};
+        $('#stageEditorForm').serializeArray().forEach(function(item) {
+            formData[item.name] = item.value;
         });
+        formData.imageWidth = w;
+        formData.imageHeight = h;
+        formData.imageOffsetX = rx;
+        formData.imageOffsetY = ry;
+
+        $('#stageEditorForm').form('load', formData);
+
+        $.messager.show({ title: '已更新', msg: '图片位置已更新到表单，请在成长阶段详情中点击保存' });
     }
 </script>
 </body>

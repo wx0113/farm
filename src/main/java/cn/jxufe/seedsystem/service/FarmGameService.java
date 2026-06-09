@@ -67,6 +67,15 @@ public class FarmGameService {
         List<GrowthStage> stages = growthStageRepo.findBySeedIdOrderByStageOrder(seed.getId());
         if (stages.isEmpty()) return;
 
+        // 计算非枯萎阶段的最大数量（枯萎阶段不应作为生长阶段的一部分）
+        int maxNormalStages = 0;
+        for (GrowthStage s : stages) {
+            if (!"枯萎".equals(s.getCropStatus())) {
+                maxNormalStages++;
+            }
+        }
+        if (maxNormalStages == 0) return;
+
         int maxStages = stages.size();
         int currentStageOrder = land.getCurrentStage();
 
@@ -78,9 +87,22 @@ public class FarmGameService {
             currentGs = stages.get(currentStageOrder - 1);
         }
 
+        // 如果当前是枯萎阶段，直接推进到成熟
+        if (currentGs != null && "枯萎".equals(currentGs.getCropStatus())) {
+            land.setCurrentStage(-1);
+            land.setStageStartTime(LocalDateTime.now());
+            land.setHasWorm(false);
+            landRepo.save(land);
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("type", "mature");
+            msg.put("landIndex", land.getLandIndex());
+            pushMessage(land.getPlayerId(), msg);
+            return;
+        }
+
         if (currentGs == null) {
             // 检查是否应该进入成熟
-            if (currentStageOrder > maxStages) {
+            if (currentStageOrder > maxNormalStages) {
                 land.setCurrentStage(-1); // 成熟标志
                 land.setStageStartTime(LocalDateTime.now());
                 landRepo.save(land);
@@ -97,16 +119,15 @@ public class FarmGameService {
         int duration = currentGs.getStageDuration() != null ? currentGs.getStageDuration() : 60;
 
         if (elapsed >= duration) {
-            // 如果本阶段有虫未除，减产
+            // 如果本阶段有虫未除，减产（虫不消失，持续到下一阶段）
             if (land.isHasWorm()) {
                 int reduction = 1 + (int)(Math.random() * 2); // 1-2
                 land.setYieldReduction(land.getYieldReduction() + reduction);
-                land.setHasWorm(false);
             }
 
             // 进入下一阶段
             int nextStage = currentStageOrder + 1;
-            if (nextStage > maxStages) {
+            if (nextStage > maxNormalStages) {
                 // 成熟了
                 land.setCurrentStage(-1);
                 land.setStageStartTime(LocalDateTime.now());
@@ -117,30 +138,43 @@ public class FarmGameService {
                 msg.put("landIndex", land.getLandIndex());
                 pushMessage(land.getPlayerId(), msg);
             } else {
-                // 进入下一生长阶段
+                // 进入下一生长阶段，跳过枯萎阶段直接成熟
                 GrowthStage nextGs = stages.get(nextStage - 1);
-                land.setCurrentStage(nextStage);
-                land.setStageStartTime(LocalDateTime.now());
-
-                // 生虫概率判断
-                BigDecimal pestProb = nextGs.getPestProbability();
-                if (pestProb != null && Math.random() < pestProb.doubleValue()) {
-                    land.setHasWorm(true);
-                    landRepo.save(land);
-                    Map<String, Object> msg = new HashMap<>();
-                    msg.put("type", "worm");
-                    msg.put("landIndex", land.getLandIndex());
-                    pushMessage(land.getPlayerId(), msg);
-                } else {
+                if ("枯萎".equals(nextGs.getCropStatus())) {
+                    // 跳过枯萎阶段，直接成熟
+                    land.setCurrentStage(-1);
+                    land.setStageStartTime(LocalDateTime.now());
                     land.setHasWorm(false);
                     landRepo.save(land);
                     Map<String, Object> msg = new HashMap<>();
-                    msg.put("type", "stageChange");
+                    msg.put("type", "mature");
                     msg.put("landIndex", land.getLandIndex());
-                    msg.put("stage", nextStage);
-                    msg.put("imageUrl", nextGs.getCropImage() != null ? nextGs.getCropImage() : nextGs.getImageUrl());
                     pushMessage(land.getPlayerId(), msg);
+                    return;
                 }
+                land.setCurrentStage(nextStage);
+                land.setStageStartTime(LocalDateTime.now());
+
+                // 生虫概率判断（已有虫则不新增）
+                if (!land.isHasWorm()) {
+                    BigDecimal pestProb = nextGs.getPestProbability();
+                    if (pestProb != null && Math.random() < pestProb.doubleValue()) {
+                        land.setHasWorm(true);
+                        landRepo.save(land);
+                        Map<String, Object> msg = new HashMap<>();
+                        msg.put("type", "worm");
+                        msg.put("landIndex", land.getLandIndex());
+                        pushMessage(land.getPlayerId(), msg);
+                        return;
+                    }
+                }
+                landRepo.save(land);
+                Map<String, Object> msg = new HashMap<>();
+                msg.put("type", "stageChange");
+                msg.put("landIndex", land.getLandIndex());
+                msg.put("stage", nextStage);
+                msg.put("imageUrl", nextGs.getImageUrl());
+                pushMessage(land.getPlayerId(), msg);
             }
         }
     }
@@ -150,6 +184,8 @@ public class FarmGameService {
     public Message actionPlant(int landIndex, int seedId, HttpSession session) {
         Player player = (Player) session.getAttribute("currentPlayer");
         if (player == null) return new Message(-1, "请先登录");
+        // 刷新为数据库最新数据，防止 session 过期
+        player = playerRepo.findById(player.getId()).orElse(player);
 
         // 检查土地
         FarmLand land = landRepo.findByPlayerIdAndLandIndex(player.getId(), landIndex);
@@ -220,19 +256,20 @@ public class FarmGameService {
     public Message actionKillWorm(int landIndex, HttpSession session) {
         Player player = (Player) session.getAttribute("currentPlayer");
         if (player == null) return new Message(-1, "请先登录");
+        player = playerRepo.findById(player.getId()).orElse(player);
 
         FarmLand land = landRepo.findByPlayerIdAndLandIndex(player.getId(), landIndex);
         if (land == null) return new Message(-2, "土地不存在");
         if (land.isEmpty()) return new Message(-2, "土地上没有作物");
         if (!land.isHasWorm()) return new Message(-3, "该作物没有虫害");
 
-        // 除虫
+        // 除虫：减少产量
         land.setHasWorm(false);
+        land.setYieldReduction(land.getYieldReduction() + 1);
         landRepo.save(land);
 
         // 奖励
         player.setExp(player.getExp() + 2);
-        player.setGold(player.getGold() + 1);
         player.setPoints(player.getPoints() + 2);
         playerRepo.save(player);
         session.setAttribute("currentPlayer", player);
@@ -242,7 +279,7 @@ public class FarmGameService {
         msg.put("landIndex", landIndex);
         pushMessage(player.getId(), msg);
 
-        return new Message(0, "除虫成功！经验+2 金币+1 积分+2");
+        return new Message(0, "除虫成功！经验+2 积分+2（产量-1）");
     }
 
     // ======================== 收获 ========================
@@ -250,6 +287,7 @@ public class FarmGameService {
     public Message actionHarvest(int landIndex, HttpSession session) {
         Player player = (Player) session.getAttribute("currentPlayer");
         if (player == null) return new Message(-1, "请先登录");
+        player = playerRepo.findById(player.getId()).orElse(player);
 
         FarmLand land = landRepo.findByPlayerIdAndLandIndex(player.getId(), landIndex);
         if (land == null) return new Message(-2, "土地不存在");
@@ -295,6 +333,7 @@ public class FarmGameService {
     public Message actionCleanLand(int landIndex, HttpSession session) {
         Player player = (Player) session.getAttribute("currentPlayer");
         if (player == null) return new Message(-1, "请先登录");
+        player = playerRepo.findById(player.getId()).orElse(player);
 
         FarmLand land = landRepo.findByPlayerIdAndLandIndex(player.getId(), landIndex);
         if (land == null) return new Message(-2, "土地不存在");
@@ -302,7 +341,42 @@ public class FarmGameService {
 
         Seed seed = seedRepo.findById(land.getSeedId()).orElse(null);
 
-        // 直接清空土地
+        // 检查是否为多季作物
+        int totalSeasons = parseSeasonCount(seed != null ? seed.getXSeasonCrop() : null);
+        int currentSeason = land.getCurrentSeason() != null ? land.getCurrentSeason() : 1;
+
+        if (seed != null && currentSeason < totalSeasons) {
+            // 还有下一季：回到种子阶段
+            land.setCurrentSeason(currentSeason + 1);
+            land.setCurrentStage(1);
+            land.setStageStartTime(LocalDateTime.now());
+            land.setHasWorm(false);
+            land.setWithered(false);
+            land.setYieldReduction(0);
+            landRepo.save(land);
+
+            // 第一阶段生虫概率
+            GrowthStage firstGs = growthStageRepo.findBySeedIdAndStageOrder(seed.getId(), 1).orElse(null);
+            if (firstGs != null && firstGs.getPestProbability() != null
+                    && Math.random() < firstGs.getPestProbability().doubleValue()) {
+                land.setHasWorm(true);
+                landRepo.save(land);
+                Map<String, Object> wm = new HashMap<>();
+                wm.put("type", "worm");
+                wm.put("landIndex", landIndex);
+                pushMessage(player.getId(), wm);
+            }
+
+            Map<String, Object> msg = new HashMap<>();
+            msg.put("type", "newSeason");
+            msg.put("landIndex", landIndex);
+            msg.put("currentSeason", land.getCurrentSeason());
+            pushMessage(player.getId(), msg);
+
+            return new Message(0, "进入第" + land.getCurrentSeason() + "季！经验+5 积分+5");
+        }
+
+        // 最后一季或单季：清空土地
         land.setSeedId(null);
         land.setCurrentStage(null);
         land.setCurrentSeason(null);
@@ -337,27 +411,106 @@ public class FarmGameService {
         state.put("hasWorm", land.isHasWorm());
         state.put("withered", land.isWithered());
         state.put("currentSeason", land.getCurrentSeason());
+        state.put("yieldReduction", land.getYieldReduction());
 
         if (land.getSeedId() != null) {
             Seed seed = seedRepo.findById(land.getSeedId()).orElse(null);
             if (seed != null) {
+                state.put("totalSeasons", parseSeasonCount(seed.getXSeasonCrop()));
+                state.put("baseHarvest", seed.getHarvestCount() != null ? seed.getHarvestCount() : 1);
+            }
+            if (seed != null) {
                 state.put("seedName", seed.getSeedName());
+
+                // 确定要查询的 GrowthStage stageOrder
+                Integer lookupStage = null;
+                if (land.getCurrentStage() != null) {
+                    if (land.getCurrentStage() >= 1) {
+                        lookupStage = land.getCurrentStage();
+                    }
+                    // 成熟阶段 (currentStage == -1) 不设 lookupStage，
+                    // 改为取最后一个非枯萎阶段的图片数据（见下方）
+                }
+                // 枯萎也查（保留当前阶段的偏移值）
+                if (land.isWithered() && land.getCurrentStage() != null && land.getCurrentStage() >= 1) {
+                    lookupStage = land.getCurrentStage();
+                }
+
+                // 查询 GrowthStage 获取偏移值和 imageUrl
+                GrowthStage gs = null;
+                if (land.isWithered()) {
+                    // 枯萎：优先查 cropStatus='枯萎' 的专属阶段，其次 fallback 当前阶段
+                    gs = growthStageRepo.findBySeedIdAndCropStatus(seed.getId(), "枯萎").orElse(null);
+                    if (gs == null && lookupStage != null) {
+                        gs = growthStageRepo.findBySeedIdAndStageOrder(seed.getId(), lookupStage).orElse(null);
+                    }
+                } else if (land.getCurrentStage() != null && land.getCurrentStage() == -1) {
+                    // 成熟（未枯萎）：取最后一个非枯萎阶段的图片和偏移数据，
+                    // 避免硬编码 stageOrder 与自动创建的枯萎阶段冲突
+                    List<GrowthStage> allStages = growthStageRepo.findBySeedIdOrderByStageOrder(seed.getId());
+                    for (int i = allStages.size() - 1; i >= 0; i--) {
+                        GrowthStage s = allStages.get(i);
+                        if (!"枯萎".equals(s.getCropStatus())) {
+                            gs = s;
+                            break;
+                        }
+                    }
+                } else if (lookupStage != null) {
+                    gs = growthStageRepo.findBySeedIdAndStageOrder(seed.getId(), lookupStage).orElse(null);
+                }
+
+                // 状态
+                String status;
+                if (land.isWithered()) {
+                    status = "withered";
+                } else if (land.getCurrentStage() != null && land.getCurrentStage() == -1) {
+                    status = "mature";
+                } else {
+                    status = land.isHasWorm() ? "worm" : "growing";
+                }
+                state.put("status", status);
+
+                // imageUrl + 偏移值
+                // 枯萎阶段：始终使用固定枯草图片 + 默认居中定位（防止无 GrowthStage 时图片飞走）
                 if (land.isWithered()) {
                     state.put("imageUrl", "/images/crops/basic/9.png");
-                    state.put("status", "withered");
-                } else if (land.getCurrentStage() != null && land.getCurrentStage() == -1) {
-                    // 成熟
-                    state.put("imageUrl", "/images/crops/" + seed.getId() + "/5.png");
-                    state.put("status", "mature");
+                    state.put("imageWidth", gs != null ? gs.getImageWidth() : 200);
+                    state.put("imageHeight", gs != null ? gs.getImageHeight() : 100);
+                    state.put("imageOffsetX", gs != null ? gs.getImageOffsetX() : 47);
+                    state.put("imageOffsetY", gs != null ? gs.getImageOffsetY() : 25);
                 } else if (land.getCurrentStage() != null && land.getCurrentStage() == 1) {
-                    // 种子阶段
                     state.put("imageUrl", "/images/crops/basic/0.png");
-                    state.put("status", land.isHasWorm() ? "worm" : "growing");
-                } else if (land.getCurrentStage() != null) {
-                    int stage = land.getCurrentStage();
-                    state.put("imageUrl", "/images/crops/" + seed.getId() + "/" + stage + ".png");
-                    state.put("status", land.isHasWorm() ? "worm" : "growing");
+                    if (gs != null) {
+                        state.put("imageWidth", gs.getImageWidth());
+                        state.put("imageHeight", gs.getImageHeight());
+                        state.put("imageOffsetX", gs.getImageOffsetX());
+                        state.put("imageOffsetY", gs.getImageOffsetY());
+                    }
+                } else if (gs != null && gs.getImageUrl() != null && !gs.getImageUrl().isEmpty()) {
+                    state.put("imageUrl", gs.getImageUrl());
+                    state.put("imageWidth", gs.getImageWidth());
+                    state.put("imageHeight", gs.getImageHeight());
+                    state.put("imageOffsetX", gs.getImageOffsetX());
+                    state.put("imageOffsetY", gs.getImageOffsetY());
+                } else {
+                    // fallback：硬编码路径（无偏移值）
+                    String fallbackUrl = null;
+                    if (land.isWithered()) {
+                        fallbackUrl = "/images/crops/basic/9.png";
+                    } else if (land.getCurrentStage() != null && land.getCurrentStage() == -1) {
+                        // 成熟：用最后一个正常阶段的图片（如 /images/crops/{id}/5.png）
+                        int lastNormalOrder = findLastNormalStageOrder(seed.getId());
+                        fallbackUrl = "/images/crops/" + seed.getId() + "/" + lastNormalOrder + ".png";
+                    } else if (land.getCurrentStage() != null && land.getCurrentStage() == 1) {
+                        fallbackUrl = "/images/crops/basic/0.png";
+                    } else if (land.getCurrentStage() != null) {
+                        fallbackUrl = "/images/crops/" + seed.getId() + "/" + land.getCurrentStage() + ".png";
+                    }
+                    if (fallbackUrl != null) {
+                        state.put("imageUrl", fallbackUrl);
+                    }
                 }
+
                 // 生虫时附加 worm 图片
                 if (land.isHasWorm()) {
                     state.put("wormImage", "/images/worm.png");
@@ -376,27 +529,56 @@ public class FarmGameService {
         return 1;
     }
 
-    /** 初始化玩家土地（首次访问时调用） */
+    /** 查找种子最后一个非枯萎阶段的 stageOrder，用于成熟图片 fallback */
+    private int findLastNormalStageOrder(Integer seedId) {
+        if (seedId == null) return 5;
+        List<GrowthStage> stages = growthStageRepo.findBySeedIdOrderByStageOrder(seedId);
+        int lastOrder = 5; // 默认值
+        for (GrowthStage s : stages) {
+            if (!"枯萎".equals(s.getCropStatus()) && s.getStageOrder() != null) {
+                lastOrder = s.getStageOrder();
+            }
+        }
+        return lastOrder;
+    }
+
+    /** 初始化/修正玩家土地类型（首次访问时创建，后续访问时自动修正变更的土地类型） */
     @Transactional
     public void initLandsForPlayer(Long playerId) {
-        if (!landRepo.findByPlayerId(playerId).isEmpty()) return; // 已初始化
+        List<FarmLand> existing = landRepo.findByPlayerId(playerId);
 
         String[][] landGrid = {
             {"黄土地","黄土地","黄土地","黄土地","黄土地","黄土地"},
             {"黑土地","黑土地","黑土地","黑土地","黑土地","黑土地"},
-            {"沙土地","沙土地","沙土地","沙土地","沙土地","沙土地"},
+            {"金土地","金土地","金土地","金土地","金土地","金土地"},
             {"沙土地","沙土地","沙土地","沙土地","沙土地","沙土地"},
         };
 
-        int index = 0;
-        for (int row = 0; row < landGrid.length; row++) {
-            for (int col = 0; col < landGrid[row].length; col++) {
-                FarmLand land = new FarmLand();
-                land.setPlayerId(playerId);
-                land.setLandIndex(index);
-                land.setLandType(landGrid[row][col]);
-                landRepo.save(land);
-                index++;
+        if (existing.isEmpty()) {
+            // 首次访问：创建全部 24 块土地
+            int index = 0;
+            for (int row = 0; row < landGrid.length; row++) {
+                for (int col = 0; col < landGrid[row].length; col++) {
+                    FarmLand land = new FarmLand();
+                    land.setPlayerId(playerId);
+                    land.setLandIndex(index);
+                    land.setLandType(landGrid[row][col]);
+                    landRepo.save(land);
+                    index++;
+                }
+            }
+        } else {
+            // 已初始化：检查并修正与当前网格定义不一致的土地类型
+            for (FarmLand land : existing) {
+                int row = land.getLandIndex() / 6;
+                int col = land.getLandIndex() % 6;
+                if (row >= 0 && row < landGrid.length && col >= 0 && col < landGrid[row].length) {
+                    String expectedType = landGrid[row][col];
+                    if (!expectedType.equals(land.getLandType())) {
+                        land.setLandType(expectedType);
+                        landRepo.save(land);
+                    }
+                }
             }
         }
     }

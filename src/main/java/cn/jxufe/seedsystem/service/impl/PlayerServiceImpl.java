@@ -35,14 +35,12 @@ public class PlayerServiceImpl implements PlayerService {
         if (player.getId() != null) {
             Player existing = playerRepository.findById(player.getId()).orElse(null);
             if (existing != null) {
-                existing.setUsername(player.getUsername());
-                existing.setNickname(player.getNickname());
+                if (player.getUsername() != null) existing.setUsername(player.getUsername());
+                if (player.getNickname() != null) existing.setNickname(player.getNickname());
                 existing.setExp(player.getExp());
                 existing.setPoints(player.getPoints());
                 existing.setGold(player.getGold());
-                if (player.getAvatarUrl() != null) {
-                    existing.setAvatarUrl(player.getAvatarUrl());
-                }
+                if (player.getAvatarUrl() != null) existing.setAvatarUrl(player.getAvatarUrl());
                 playerRepository.save(existing);
                 return;
             }

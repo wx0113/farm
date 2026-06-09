@@ -271,9 +271,9 @@
     var currentPage = 1, pageSize = 10, totalRows = 0, currentUploadUser = null, addingRow = false;
 
     $(function() {
-        // 切换用户
+        // 切换用户 — 跳转至首页登录
         $('#switchUserBtn').bind('click', function() {
-            $.messager.alert('提示', '请前往首页切换用户');
+            window.location.href = 'index.html';
         });
 
         loadPlayers();

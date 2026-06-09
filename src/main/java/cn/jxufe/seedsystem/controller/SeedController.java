@@ -111,6 +111,17 @@ public class SeedController {
     public Map<String, Object> saveGrowthStage(@RequestBody GrowthStage stage) {
         Map<String, Object> result = new HashMap<>();
         try {
+            // 特殊阶段强制固定图片路径，不受前端提交值影响
+            if ("枯萎".equals(stage.getCropStatus())) {
+                stage.setImageUrl("/images/crops/basic/9.png");
+            } else if (stage.getStageOrder() != null && stage.getStageOrder() == 1) {
+                stage.setImageUrl("/images/crops/basic/0.png");
+            } else if (stage.getImageUrl() == null || stage.getImageUrl().isEmpty()) {
+                // 普通阶段 imageUrl 为空时按种子ID和阶段序号补全
+                if (stage.getSeedId() != null && stage.getStageOrder() != null) {
+                    stage.setImageUrl("/images/crops/" + stage.getSeedId() + "/" + stage.getStageOrder() + ".png");
+                }
+            }
             seedService.saveGrowthStage(stage);
             result.put("code", 0);
             result.put("msg", "保存成功");
@@ -139,6 +150,7 @@ public class SeedController {
         return result;
     }
 
+    @Deprecated
     @PostMapping("/growth/cropImage")
     @ResponseBody
     public Result<String> cropImage(@RequestParam("image") MultipartFile file,

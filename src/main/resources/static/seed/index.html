@@ -187,8 +187,13 @@
             textField: 'nickname',
             formatter: function(row) {
                 var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
-                return '<img class="item-img" src="' + avatarFile + '" />' +
-                    '<span class="item-text">' + row.nickname + '</span>';
+                return '<div style="display:flex;align-items:center;gap:10px;">'
+                    + '<img class="item-img" src="' + avatarFile + '" />'
+                    + '<div>'
+                    + '<span style="font-weight:bold;">' + (row.nickname || '') + '</span>'
+                    + '<div style="font-size:11px;color:#555;margin-top:2px;">'
+                    + '经验:' + (row.exp || 0) + ' | 金币:' + (row.gold || 0) + ' | 积分:' + (row.points || 0)
+                    + '</div></div></div>';
             }
         });
 

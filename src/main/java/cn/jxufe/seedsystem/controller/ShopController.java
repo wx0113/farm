@@ -31,6 +31,9 @@ public class ShopController {
     @Autowired
     private PlayerSeedRepository playerSeedRepository;
 
+    @Autowired
+    private cn.jxufe.seedsystem.repository.GrowthStageRepository growthStageRepository;
+
     @GetMapping("/seeds")
     @ResponseBody
     public Map<String, Object> seeds(@RequestParam(defaultValue = "1") int page,
@@ -44,9 +47,17 @@ public class ShopController {
             Map<String, Object> item = new HashMap<>();
             item.put("id", s.getId());
             item.put("seedName", s.getSeedName());
+            item.put("seedLevel", s.getSeedLevel());
+            item.put("seedType", s.getSeedType());
+            item.put("xSeasonCrop", s.getXSeasonCrop());
+            item.put("maturityTime", s.getMaturityTime());
+            item.put("harvestCount", s.getHarvestCount());
+            item.put("fruitPrice", s.getFruitPrice());
+            item.put("landRequirement", s.getLandRequirement());
+            item.put("experience", s.getExperience());
             item.put("tipInfo", s.getTipInfo());
             item.put("purchasePrice", s.getPurchasePrice());
-            item.put("matureImage", "/images/crops/" + s.getId() + "/5.png");
+            item.put("matureImage", getMatureImagePath(s));
             seedList.add(item);
         }
 
@@ -61,18 +72,24 @@ public class ShopController {
         Player player = (Player) session.getAttribute("currentPlayer");
         if (player == null) return new ArrayList<>();
 
+        // 已拥有种子的数量映射
         List<PlayerSeed> owned = playerSeedRepository.findByPlayerId(player.getId());
-        List<Map<String, Object>> result = new ArrayList<>();
+        Map<Integer, Integer> qtyMap = new HashMap<>();
         for (PlayerSeed ps : owned) {
+            qtyMap.put(ps.getSeedId(), ps.getQuantity());
+        }
+
+        // 返回所有商店种子（含未购买的数量为0的）
+        List<Seed> allSeeds = seedRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Seed seed : allSeeds) {
             Map<String, Object> item = new HashMap<>();
-            item.put("seedId", ps.getSeedId());
-            item.put("quantity", ps.getQuantity());
-            item.put("image", "/images/crops/" + ps.getSeedId() + "/5.png");
-            // 查询种子名称
-            seedRepository.findById(ps.getSeedId()).ifPresent(seed -> {
-                item.put("seedName", seed.getSeedName());
-                item.put("tipInfo", seed.getTipInfo());
-            });
+            item.put("seedId", seed.getId());
+            item.put("seedName", seed.getSeedName());
+            item.put("quantity", qtyMap.getOrDefault(seed.getId(), 0));
+            item.put("image", getMatureImagePath(seed));
+            item.put("tipInfo", seed.getTipInfo());
+            item.put("purchasePrice", seed.getPurchasePrice());
             result.add(item);
         }
         return result;
@@ -120,5 +137,18 @@ public class ShopController {
     public int playerGold(HttpSession session) {
         Player player = (Player) session.getAttribute("currentPlayer");
         return player != null ? player.getGold() : 0;
+    }
+
+    /** 获取种子的成熟图片路径（基于实际最后一个正常阶段的序号） */
+    private String getMatureImagePath(Seed seed) {
+        int lastOrder = 5; // 默认
+        List<cn.jxufe.seedsystem.entity.GrowthStage> stages =
+            growthStageRepository.findBySeedIdOrderByStageOrder(seed.getId());
+        for (cn.jxufe.seedsystem.entity.GrowthStage s : stages) {
+            if (!"枯萎".equals(s.getCropStatus()) && s.getStageOrder() != null) {
+                lastOrder = s.getStageOrder();
+            }
+        }
+        return "/images/crops/" + seed.getId() + "/" + lastOrder + ".png";
     }
 }

@@ -95,9 +95,11 @@
         .land-plot img.land-bg {
             width: 100%; height: 100%; object-fit: contain;
         }
+        /* 作物图标默认居中；具体尺寸/位置由 addCropIcon() inline style 覆盖 */
         .land-plot .crop-icon {
             position: absolute;
             width: 60%; height: 60%;
+            left: 20%; top: 20%;
             object-fit: contain; pointer-events: none; z-index: 2;
         }
 
@@ -122,6 +124,11 @@
         .seed-select-card .seed-name { font-weight: bold; font-size: 13px; color: #1b5e20; }
         .seed-select-card .seed-qty { font-size: 11px; color: #666; }
         .seed-select-card .seed-req { font-size: 11px; color: #c62828; }
+        .seed-select-card.disabled {
+            opacity: 0.45; cursor: not-allowed; background: #f5f5f5; border-color: #e0e0e0;
+        }
+        .seed-select-card.disabled:hover { border-color: #e0e0e0; background: #f5f5f5; }
+        .seed-select-card.disabled .seed-req { color: #e53935; font-weight: bold; }
 
         /* ===== EasyUI 深绿主题 ===== */
         .panel-header { background: #1b5e20 !important; border-color: #2e7d32 !important; }
@@ -195,21 +202,27 @@
 
 <!-- 种子选择对话框 -->
 <div id="seedSelectDialog" class="easyui-dialog" title="选择要播种的种子"
-     closed="true" style="width:520px;padding:15px;z-index:9999;"
+     closed="true" style="width:580px;padding:15px;z-index:9999;"
      buttons="#seedDlgButtons">
     <div style="margin-bottom:10px;font-size:13px;color:#555;">
         当前土地类型：<strong id="seedDlgLandType"></strong>
     </div>
-    <div id="seedCardContainer" style="min-height:120px;text-align:center;">
-        <div style="color:#999;padding:30px;">加载中...</div>
+    <div style="display:flex;align-items:center;gap:8px;">
+        <img src="/images/pre.png" style="width:32px;height:32px;cursor:pointer;flex-shrink:0;"
+             id="seedDlgPrev" onclick="seedDlgPrevPage()" alt="上一页">
+        <div id="seedCardContainer" style="flex:1;display:flex;gap:10px;justify-content:center;min-height:130px;align-items:center;">
+            <div style="color:#999;">加载中...</div>
+        </div>
+        <img src="/images/next.png" style="width:32px;height:32px;cursor:pointer;flex-shrink:0;"
+             id="seedDlgNext" onclick="seedDlgNextPage()" alt="下一页">
     </div>
+    <div style="text-align:center;font-size:12px;color:#999;margin-top:6px;" id="seedDlgPageInfo"></div>
 </div>
 <div id="seedDlgButtons">
     <a href="javascript:void(0)" class="easyui-linkbutton"
        data-options="iconCls:'icon-cancel'"
        onclick="$('#seedSelectDialog').dialog('close')">取消</a>
 </div>
-
 <script>
     // ===================== 全局状态 =====================
     var landStates = {};        // landIndex → state object
@@ -217,12 +230,15 @@
     var pollTimer = null;
     var msgPollTimer = null;
     var selectedLandIndex = -1;
+    var seedDlgAllSeeds = [];   // 所有种子
+    var seedDlgPage = 0;        // 当前页码
+    var seedDlgPageSize = 4;    // 每页显示数量
 
     // 默认土地布局
     var LAND_GRID = [
         { type: '黄土地', bg: '/images/land.png' },
         { type: '黑土地', bg: '/images/landBlack.png' },
-        { type: '沙土地', bg: '/images/landGold.png' },
+        { type: '金土地', bg: '/images/landGold.png' },
         { type: '沙土地', bg: '/images/landRed.png' }
     ];
     var COLS_PER_ROW = 6;
@@ -318,6 +334,10 @@
                 $.messager.show({ title: '收获成功',
                     msg: '获得' + m.harvestCount + '个果实！经验+' + m.expGain + ' 金币+' + m.goldGain + ' 积分+' + m.pointGain });
                 break;
+            case 'newSeason':
+                Sound.click();
+                $.messager.show({ title: '🌱 新一季', msg: '进入第' + m.currentSeason + '季！重新开始生长' });
+                break;
             case 'cleaned':
                 Sound.cleanLand();
                 $.messager.show({ title: '除枯草成功', msg: '经验+5 积分+5 土地已清空' });
@@ -330,40 +350,109 @@
         $('.land-plot').each(function() {
             var $plot = $(this);
             var idx = parseInt($plot.data('land-index'));
-            var landType = $plot.data('land-type');
             var state = landStates[idx];
+
+            // 以服务端数据为准同步土地类型，避免前后端定义不一致
+            var landType = (state && state.landType) ? state.landType : $plot.data('land-type');
+            if (landType !== $plot.data('land-type')) {
+                $plot.attr('data-land-type', landType);
+                $plot.data('land-type', landType);
+            }
 
             // 清除旧状态
             $plot.removeClass('cursor-empty cursor-growing cursor-worm cursor-mature cursor-withered');
             $plot.find('.crop-icon').remove();
+
+            // 构建偏移值对象
+            var cropOpts = (state && state.imageWidth && state.imageHeight) ? {
+                width: state.imageWidth,
+                height: state.imageHeight,
+                offsetX: state.imageOffsetX,
+                offsetY: state.imageOffsetY
+            } : null;
+
+            // 产量信息
+            var yieldInfo = '';
+            if (state && state.baseHarvest) {
+                var actualYield = state.baseHarvest - (state.yieldReduction || 0);
+                if (actualYield < 1) actualYield = 1;
+                yieldInfo = '【产量' + state.baseHarvest + '】';
+                if (state.yieldReduction > 0) {
+                    yieldInfo = '【产量' + actualYield + '/' + state.baseHarvest + '】';
+                }
+            }
 
             if (!state || state.status === 'empty') {
                 $plot.addClass('cursor-empty');
                 $plot.attr('title', landType + ' - 可播种');
             } else if (state.status === 'growing') {
                 $plot.addClass('cursor-growing');
-                $plot.attr('title', (state.seedName || '作物') + ' - 生长中 第' + state.currentStage + '阶段');
-                addCropIcon($plot, state.imageUrl);
+                var seasonInfo = (state.totalSeasons > 1) ? ' 第' + (state.currentSeason || 1) + '/' + state.totalSeasons + '季' : '';
+                $plot.attr('title', (state.seedName || '作物') + yieldInfo + ' - 生长中 第' + state.currentStage + '阶段' + seasonInfo);
+                addCropIcon($plot, state.imageUrl, cropOpts);
             } else if (state.status === 'worm') {
                 $plot.addClass('cursor-worm');
-                $plot.attr('title', (state.seedName || '作物') + ' - ⚠生虫！点击除虫');
-                addCropIcon($plot, state.imageUrl);
+                $plot.attr('title', (state.seedName || '作物') + yieldInfo + ' - ⚠生虫！点击除虫');
+                addCropIcon($plot, state.imageUrl, cropOpts);
                 if (state.wormImage) addCropIcon($plot, state.wormImage);
             } else if (state.status === 'mature') {
                 $plot.addClass('cursor-mature');
-                $plot.attr('title', (state.seedName || '作物') + ' - 🌾已成熟，点击收获');
-                addCropIcon($plot, state.imageUrl);
+                $plot.attr('title', (state.seedName || '作物') + yieldInfo + ' - 🌾已成熟，点击收获');
+                addCropIcon($plot, state.imageUrl, cropOpts);
             } else if (state.status === 'withered') {
                 $plot.addClass('cursor-withered');
-                $plot.attr('title', '枯草 - 点击清除');
-                addCropIcon($plot, state.imageUrl);
+                var wSeasonInfo = (state.totalSeasons > 1 && state.currentSeason) ? ' (第' + state.currentSeason + '/' + state.totalSeasons + '季)' : '';
+                $plot.attr('title', '枯草 - 点击清除' + wSeasonInfo);
+                // 枯萎态强制使用枯草图，不依赖服务端返回的 imageUrl
+                addCropIcon($plot, '/images/crops/basic/9.png', cropOpts);
             }
         });
     }
 
-    function addCropIcon($plot, url) {
+    function addCropIcon($plot, url, opts) {
         var img = $('<img class="crop-icon">');
-        img.attr('src', (url || 'images/unknownUser.png') + '?t=' + Date.now());
+        // 确保图片路径以 / 开头，避免相对路径拼接到当前页面 URL 下
+        var imgUrl = url || '/images/unknownUser.png';
+        if (imgUrl.charAt(0) !== '/') imgUrl = '/' + imgUrl;
+        img.attr('src', imgUrl + '?t=' + Date.now());
+        // 加载失败时用空白占位图兜底，避免显示裂图
+        img.one('error', function() {
+            if (this.src.indexOf('/images/crops/basic/blank.png') === -1) {
+                this.src = '/images/crops/basic/blank.png';
+            }
+        });
+        if (opts && opts.width && opts.height) {
+            var pw = $plot.width();   // 146
+            var ph = $plot.height();  // 146
+
+            // 计算 land-bg 在农场土地块中的实际显示区域（object-fit:contain）
+            // land.png 系列均为 201×102
+            var landBg = $plot.find('.land-bg')[0];
+            var farmW = pw, farmH = ph, farmOffX = 0, farmOffY = 0;
+            if (landBg && landBg.naturalWidth && landBg.naturalHeight) {
+                var imgRatio = landBg.naturalWidth / landBg.naturalHeight;  // ~1.97
+                var containerRatio = pw / ph;  // 1
+                // 图比容器宽 → 填满宽度，上下留白
+                farmW = pw;
+                farmH = pw / imgRatio;         // ~74
+                farmOffY = (ph - farmH) / 2;   // ~36
+            }
+
+            // 定位器土地区域（positioning.png 200×300 在 440×440 容器内）
+            // 土地在底部 102px → 占显示高度的 102/300
+            var posLandW = Math.round(440 * (200.0 / 300));  // 293
+            var posLandH = Math.round(440 * (102.0 / 300));  // 150
+
+            var scaleX = farmW / posLandW;
+            var scaleY = farmH / posLandH;
+
+            img.css({
+                width:  Math.round(opts.width * scaleX) + 'px',
+                height: Math.round(opts.height * scaleY) + 'px',
+                left:   Math.round((opts.offsetX || 0) * scaleX + farmOffX) + 'px',
+                top:    Math.round((opts.offsetY || 0) * scaleY + farmOffY) + 'px'
+            });
+        }
         $plot.append(img);
     }
 
@@ -392,6 +481,7 @@
     // ===================== 播种 =====================
     function openSeedDialog(landIndex, landType) {
         selectedLandIndex = landIndex;
+        seedDlgPage = 0;
         $('#seedDlgLandType').text(landType);
         $('#seedCardContainer').html('<div style="color:#999;padding:30px;">加载中...</div>');
         $('#seedSelectDialog').dialog('open').dialog('center');
@@ -399,30 +489,87 @@
         $.ajax({
             url: '/farm/mySeeds', type: 'GET', dataType: 'json',
             success: function(seeds) {
-                var matched = seeds.filter(function(s) {
-                    return !s.landRequirement || s.landRequirement === landType;
-                });
-                if (!matched.length) {
+                seedDlgAllSeeds = seeds || [];
+                if (!seedDlgAllSeeds.length) {
                     $('#seedCardContainer').html(
-                        '<div style="color:#999;padding:30px;">没有适合' + landType + '的种子<br/>请先去商店购买</div>');
+                        '<div style="color:#999;padding:30px;">还没有种子<br/>请先去商店购买</div>');
                     return;
                 }
-                var html = '';
-                matched.forEach(function(s) {
-                    html += '<div class="seed-select-card" onclick="doPlant(' + s.seedId + ')">'
-                        + '<img src="' + s.matureImage + '" onerror="this.src=\'images/unknownUser.png\'">'
-                        + '<div class="seed-name">' + esc(s.seedName) + '</div>'
-                        + '<div class="seed-qty">库存：' + s.quantity + '</div>'
-                        + '<div class="seed-req">需要' + (s.landRequirement || '无') + '</div>'
-                        + '</div>';
+                // 将能在当前土地上种植的种子排到前面
+                seedDlgAllSeeds.sort(function(a, b) {
+                    var aOk = (!a.landRequirement || a.landRequirement === landType) && (a.quantity || 0) > 0;
+                    var bOk = (!b.landRequirement || b.landRequirement === landType) && (b.quantity || 0) > 0;
+                    if (aOk && !bOk) return -1;
+                    if (!aOk && bOk) return 1;
+                    return 0;
                 });
-                $('#seedCardContainer').html(html);
+                renderSeedDlgPage(landType);
             },
             error: function() {
                 $('#seedCardContainer').html('<div style="color:#c62828;padding:30px;">加载失败</div>');
             }
         });
     }
+
+    function renderSeedDlgPage(landType) {
+        var totalPages = Math.ceil(seedDlgAllSeeds.length / seedDlgPageSize) || 1;
+        if (seedDlgPage >= totalPages) seedDlgPage = totalPages - 1;
+        if (seedDlgPage < 0) seedDlgPage = 0;
+        var start = seedDlgPage * seedDlgPageSize;
+        var end = Math.min(start + seedDlgPageSize, seedDlgAllSeeds.length);
+        var visible = seedDlgAllSeeds.slice(start, end);
+
+        var html = '';
+        visible.forEach(function(s) {
+            var landOk = !s.landRequirement || s.landRequirement === landType;
+            var qtyOk = (s.quantity || 0) > 0;
+            var canPlant = landOk && qtyOk;
+            var disabledClass = canPlant ? '' : ' disabled';
+            var reqText = s.landRequirement
+                ? (landOk ? '✓ ' + s.landRequirement : '✗ 需要' + s.landRequirement + '（当前' + landType + '）')
+                : '✓ 无要求';
+            var qtyText = qtyOk ? '库存：' + s.quantity : '库存：0（不足）';
+            html += '<div class="seed-select-card' + disabledClass + '"'
+                + ' onclick="tryPlant(' + s.seedId + ', ' + canPlant + ', ' + qtyOk + ', \'' + esc(s.seedName) + '\', \'' + esc(reqText) + '\')">'
+                + '<img src="' + s.matureImage + '" onerror="this.src=\'images/unknownUser.png\'">'
+                + '<div class="seed-name">' + esc(s.seedName) + '</div>'
+                + '<div class="seed-qty">' + qtyText + '</div>'
+                + '<div class="seed-req">' + reqText + '</div>'
+                + '</div>';
+        });
+        for (var i = visible.length; i < seedDlgPageSize; i++) {
+            html += '<div class="seed-select-card" style="visibility:hidden;"></div>';
+        }
+        $('#seedCardContainer').html(html);
+        $('#seedDlgPageInfo').text('第 ' + (seedDlgPage + 1) + ' 页 / 共 ' + totalPages + ' 页');
+        $('#seedDlgPrev').css('opacity', seedDlgPage <= 0 ? '0.25' : '1');
+        $('#seedDlgNext').css('opacity', seedDlgPage >= totalPages - 1 ? '0.25' : '1');
+    }
+
+    function seedDlgPrevPage() {
+        if (seedDlgPage <= 0) return;
+        seedDlgPage--;
+        renderSeedDlgPage($('#seedDlgLandType').text());
+    }
+    function seedDlgNextPage() {
+        var totalPages = Math.ceil(seedDlgAllSeeds.length / seedDlgPageSize) || 1;
+        if (seedDlgPage >= totalPages - 1) return;
+        seedDlgPage++;
+        renderSeedDlgPage($('#seedDlgLandType').text());
+    }
+
+    window.tryPlant = function(seedId, canPlant, qtyOk, seedName, reason) {
+        if (!canPlant) {
+            Sound.taunt();
+            if (!qtyOk) {
+                $.messager.alert('无法播种', '【' + seedName + '】库存不足，请先去商店购买', 'warning');
+            } else {
+                $.messager.alert('无法播种', '【' + seedName + '】不能种在' + reason, 'warning');
+            }
+            return;
+        }
+        doPlant(seedId);
+    };
 
     window.doPlant = function(seedId) {
         $.ajax({
@@ -452,6 +599,8 @@
                 data: { landIndex: landIndex }, dataType: 'json',
                 success: function(res) {
                     if (res.code === 0) {
+                        Sound.killWorm();
+                        $.messager.show({ title: '除虫成功', msg: res.msg });
                         pollLandStates();
                         loadCurrentPlayer();
                     } else {
@@ -512,20 +661,18 @@
             valueField: 'nickname', textField: 'nickname',
             formatter: function(row) {
                 var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
-                return '<img src="' + avatarFile + '" style="width:32px;height:32px;border-radius:50%;margin-right:8px;vertical-align:middle;" />'
-                    + '<span style="vertical-align:middle;">' + row.nickname + '</span>';
+                return '<div style="display:flex;align-items:center;gap:10px;">'
+                    + '<img src="' + avatarFile + '" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;" />'
+                    + '<div>'
+                    + '<span style="font-weight:bold;">' + (row.nickname || '') + '</span>'
+                    + '<div style="font-size:11px;color:#555;margin-top:2px;">'
+                    + '经验:' + (row.exp || 0) + ' | 金币:' + (row.gold || 0) + ' | 积分:' + (row.points || 0)
+                    + '</div></div></div>';
             }
         });
 
         $('#switchUserBtn').bind('click', function() {
-            $.ajax({
-                url: '/player/list', type: 'GET', dataType: 'json',
-                success: function(data) {
-                    $('#userCombo').combobox('clear').combobox('loadData', data);
-                    $('#userSelectDialog').dialog('open');
-                },
-                error: function() { $.messager.alert('错误', '加载玩家列表失败', 'error'); }
-            });
+            window.location.href = 'index.html';
         });
 
         $('#confirmUserBtn').bind('click', function() {

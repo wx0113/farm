@@ -202,6 +202,28 @@
         .messager-button .l-btn, .dialog-button .l-btn { background: #43a047 !important; border-color: #2e7d32 !important; color: #fff !important; }
         .messager-button .l-btn:hover, .dialog-button .l-btn:hover { background: #2e7d32 !important; }
         .messager-icon-question { background: #c8e6c9 !important; }
+
+        /* 种子悬浮详情浮窗 */
+        .seed-tooltip {
+            display: none; position: absolute; z-index: 9999;
+            width: 240px; padding: 14px 16px;
+            background: rgba(27, 94, 32, 0.95); color: #e8f5e9;
+            border-radius: 10px; border: 2px solid #81c784;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            font-size: 13px; line-height: 1.8;
+            pointer-events: none;
+        }
+        .seed-tooltip .tt-name {
+            font-size: 17px; font-weight: bold; color: #ffd54f;
+            border-bottom: 1px solid #66bb6a; padding-bottom: 6px; margin-bottom: 8px;
+        }
+        .seed-tooltip .tt-row { display: flex; justify-content: space-between; }
+        .seed-tooltip .tt-label { color: #a5d6a7; }
+        .seed-tooltip .tt-value { color: #fff; font-weight: bold; }
+        .seed-tooltip .tt-tip {
+            margin-top: 8px; padding-top: 8px; border-top: 1px solid #66bb6a;
+            color: #c8e6c9; font-size: 12px; line-height: 1.6;
+        }
     </style>
 </head>
 <body>
@@ -216,7 +238,7 @@
             </div>
         </div>
         <div class="top-buttons">
-            <a href="javascript:void(0)" class="icon-link" id="switchUserBtn" title="切换用户">
+            <a href="index.html" class="icon-link" id="switchUserBtn" title="切换用户">
                 <img src="/images/userSelect.png" alt="切换用户">
             </a>
             <a href="farm.html" class="icon-link" title="农场种植">
@@ -266,10 +288,14 @@
     <div class="bottom-frame"></div>
 </div>
 
+<!-- 种子悬浮详情浮窗 -->
+<div class="seed-tooltip" id="seedTooltip"></div>
+
 <script>
     var shopPage = 1, shopTotalPages = 1, mySeeds = [], storagePage = 0;
     var pageSize = 4;
     var shopLoading = false, storageLoading = false;
+    var seedDataMap = {};  // 缓存当前页种子详情，供悬浮浮窗使用
 
     $(function() {
         loadCurrentPlayer();
@@ -333,7 +359,8 @@
         if (!rows.length) { $container.html('<div class="no-seed">暂无种子</div>'); return; }
         var html = '';
         rows.forEach(function(s) {
-            html += '<div class="seed-card">'
+            seedDataMap[s.id] = s;  // 缓存到全局 map
+            html += '<div class="seed-card" data-seed-id="' + s.id + '">'
                 + '<img src="' + s.matureImage + '" class="seed-card-img" onerror="this.src=\'images/unknownUser.png\'">'
                 + '<div class="seed-card-name">' + escapeHtml(s.seedName || '') + '</div>'
                 + '<div class="seed-card-tip">' + escapeHtml(s.tipInfo || '暂无介绍') + '</div>'
@@ -348,6 +375,65 @@
             html += '<div class="seed-card" style="visibility:hidden;"></div>';
         }
         $container.html(html);
+
+        // 绑定悬浮事件
+        $container.find('.seed-card[data-seed-id]').each(function() {
+            var $card = $(this);
+            var seedId = parseInt($card.attr('data-seed-id'));
+            $card.on('mouseenter', function(e) {
+                showSeedTooltip(seedDataMap[seedId], $card);
+            }).on('mouseleave', function() {
+                $('#seedTooltip').hide();
+            }).on('mousemove', function(e) {
+                var tip = $('#seedTooltip');
+                if (tip.is(':visible')) {
+                    var top = e.clientY + 12;
+                    var left = e.clientX + 15;
+                    if (left + tip.outerWidth() > $(window).width()) {
+                        left = e.clientX - tip.outerWidth() - 15;
+                    }
+                    tip.css({ top: top + 'px', left: left + 'px' });
+                }
+            });
+        });
+    }
+
+    function showSeedTooltip(s, $card) {
+        var levelMap = { 1: '⭐', 2: '⭐⭐', 3: '⭐⭐⭐', 4: '⭐⭐⭐⭐', 5: '⭐⭐⭐⭐⭐' };
+        var stars = levelMap[s.seedLevel] || s.seedLevel || '—';
+        var typeStr = s.seedType || '—';
+        var seasonStr = s.xSeasonCrop || '—';
+        var matureStr = s.maturityTime ? s.maturityTime + ' 分钟' : '—';
+        var harvestStr = s.harvestCount != null ? s.harvestCount + ' 个' : '—';
+        var fruitPriceStr = s.fruitPrice != null ? s.fruitPrice + ' 金币' : '—';
+        var landStr = s.landRequirement || '—';
+        var expStr = s.experience != null ? '+' + s.experience : '—';
+        var tipStr = s.tipInfo || '暂无介绍';
+
+        var html = '<div class="tt-name">' + escapeHtml(s.seedName) + '</div>'
+            + '<div class="tt-row"><span class="tt-label">等级</span><span class="tt-value">' + stars + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">类型</span><span class="tt-value">' + escapeHtml(typeStr) + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">季节</span><span class="tt-value">' + escapeHtml(seasonStr) + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">成熟时间</span><span class="tt-value">' + matureStr + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">收获数量</span><span class="tt-value">' + harvestStr + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">果实单价</span><span class="tt-value">' + fruitPriceStr + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">土地要求</span><span class="tt-value">' + escapeHtml(landStr) + '</span></div>'
+            + '<div class="tt-row"><span class="tt-label">经验值</span><span class="tt-value">' + expStr + '</span></div>'
+            + '<div class="tt-tip">📝 ' + escapeHtml(tipStr) + '</div>';
+
+        var $tip = $('#seedTooltip');
+        $tip.html(html).show();
+
+        // 初始定位在卡片右侧
+        var offset = $card.offset();
+        var cardW = $card.outerWidth();
+        var tipW = $tip.outerWidth();
+        var left = offset.left + cardW + 8;
+        if (left + tipW > $(window).width()) {
+            left = offset.left - tipW - 8;
+        }
+        var top = offset.top;
+        $tip.css({ top: top + 'px', left: left + 'px' });
     }
 
     function shopPrevPage() {
@@ -370,7 +456,16 @@
                     $.messager.alert('提示', '请先在首页登录后再购买！');
                     return;
                 }
-                doBuy(seedId, btn);
+                // 从缓存取种子信息用作确认提示
+                var info = seedDataMap[seedId];
+                var seedName = info ? info.seedName : '该种子';
+                var price = info ? info.purchasePrice : '?';
+                var gold = res.data.gold || 0;
+                $.messager.confirm('购买确认',
+                    '确定要购买【' + seedName + '】吗？\n价格：' + price + ' 金币 ｜ 当前拥有：' + gold + ' 金币',
+                    function(r) {
+                        if (r) doBuy(seedId, btn);
+                    });
             },
             error: function() {
                 $.messager.alert('提示', '请先在首页登录后再购买！');
@@ -431,9 +526,13 @@
         var visible = mySeeds.slice(start, end);
         var html = '';
         visible.forEach(function(s) {
-            html += '<div class="storage-item">'
-                + '<img src="' + s.image + '" class="storage-item-img" onerror="this.src=\'images/unknownUser.png\'">'
-                + '<div class="storage-item-badge">' + s.quantity + '</div>'
+            var qty = s.quantity || 0;
+            var badgeStyle = qty > 0 ? '' : 'style="background:#9e9e9e;"';
+            var imgStyle = qty > 0 ? '' : 'style="opacity:0.4;"';
+            html += '<div class="storage-item" title="' + escapeHtml(s.seedName || '') + '">'
+                + '<img src="' + s.image + '" class="storage-item-img" ' + imgStyle + ' onerror="this.src=\'images/unknownUser.png\'">'
+                + '<div class="storage-item-badge" ' + badgeStyle + '>' + qty + '</div>'
+                + '<div style="font-size:10px;color:#666;margin-top:2px;text-align:center;">' + escapeHtml(s.seedName || '') + '</div>'
                 + '</div>';
         });
         for (var i = visible.length; i < pageSize; i++) {

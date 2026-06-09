@@ -17,6 +17,7 @@ public class FarmController {
     @Autowired private SeedRepository seedRepository;
     @Autowired private PlayerSeedRepository playerSeedRepository;
     @Autowired private FarmGameService farmService;
+    @Autowired private GrowthStageRepository growthStageRepository;
 
     /** 获取当前玩家拥有的种子列表（含土地需求信息） */
     @GetMapping("/mySeeds")
@@ -28,7 +29,6 @@ public class FarmController {
         List<PlayerSeed> owned = playerSeedRepository.findByPlayerId(player.getId());
         List<Map<String, Object>> result = new ArrayList<>();
         for (PlayerSeed ps : owned) {
-            if (ps.getQuantity() <= 0) continue;
             Optional<Seed> opt = seedRepository.findById(ps.getSeedId());
             if (opt.isEmpty()) continue;
 
@@ -38,7 +38,7 @@ public class FarmController {
             item.put("seedName", seed.getSeedName());
             item.put("landRequirement", seed.getLandRequirement());
             item.put("quantity", ps.getQuantity());
-            item.put("matureImage", "/images/crops/" + seed.getId() + "/5.png");
+            item.put("matureImage", getMatureImagePath(seed));
             item.put("tipInfo", seed.getTipInfo());
             result.add(item);
         }
@@ -120,5 +120,17 @@ public class FarmController {
         result.put("code", msg.getCode());
         result.put("msg", msg.getMsg());
         return result;
+    }
+
+    /** 获取种子的成熟图片路径（基于实际最后一个正常阶段的序号） */
+    private String getMatureImagePath(Seed seed) {
+        int lastOrder = 5;
+        List<GrowthStage> stages = growthStageRepository.findBySeedIdOrderByStageOrder(seed.getId());
+        for (GrowthStage s : stages) {
+            if (!"枯萎".equals(s.getCropStatus()) && s.getStageOrder() != null) {
+                lastOrder = s.getStageOrder();
+            }
+        }
+        return "/images/crops/" + seed.getId() + "/" + lastOrder + ".png";
     }
 }

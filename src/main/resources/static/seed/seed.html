@@ -213,7 +213,7 @@
     <!-- 顶部栏 -->
     <div class="top-frame">
         <div class="user-panel" id="userPanel">
-            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
+            <img class="user-avatar" id="userAvatar" src="/images/unknownUser.png" alt="头像">
             <div class="user-info">
                 <div><strong id="currentNickname">未知用户</strong></div>
                 <div>经验：<span id="currentExp">0</span>金币：<span id="currentGold">0</span>积分：<span id="currentPoints">0</span></div>
@@ -247,8 +247,8 @@
             <!-- 操作工具栏 -->
             <div id="toolbar">
                 <span style="display:inline-block;vertical-align:middle;margin-right:10px;">
-                    <label style="font-size:12px;color:#f4f4f4;">按种子ID筛选：</label>
-                    <input class="search-box" id="searchId" placeholder="输入数字ID" />
+                    <label style="font-size:12px;color:#f4f4f4;">种子查询：</label>
+                    <input class="search-box" id="searchKeyword" placeholder="输入种子ID或名称（如西瓜）" />
                     <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-search" plain="true" onclick="searchById()" style="margin-left:3px;">查询</a>
                     <a href="javascript:void(0)" class="easyui-linkbutton" iconCls="icon-clear" plain="true" onclick="clearSearch()" style="margin-left:3px;">清空</a>
                 </span>
@@ -435,7 +435,7 @@
         $('#userCombo').combobox({
             valueField: 'nickname', textField: 'nickname',
             formatter: function(row) {
-                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
+                var avatarFile = row.avatarUrl ? row.avatarUrl : '//images/unknownUser.png';
                 return '<div style="display:flex;align-items:center;gap:10px;">'
                     + '<img class="item-img" src="' + avatarFile + '" />'
                     + '<div>'
@@ -600,7 +600,7 @@
         $('#currentExp').text(player.exp);
         $('#currentGold').text(player.gold);
         $('#currentPoints').text(player.points);
-        $('#userAvatar').attr('src', player.avatarUrl || 'images/unknownUser.png');
+        $('#userAvatar').attr('src', player.avatarUrl || '//images/unknownUser.png');
     }
 
     // 加载当前用户信息
@@ -715,21 +715,28 @@
         $.messager.show({ title: '提示', msg: '数据已刷新' });
     }
 
-    // 按种子ID搜索
+    // 按种子ID或名称搜索（数字→按ID查，文字→按名称模糊查）
     function searchById() {
-        var keyword = $.trim($('#searchId').val());
-        if (!keyword) { $.messager.alert('提示', '请输入种子ID进行筛选'); return; }
+        var keyword = $.trim($('#searchKeyword').val());
+        if (!keyword) { $.messager.alert('提示', '请输入种子ID或名称'); return; }
         var id = parseInt(keyword);
-        if (isNaN(id)) { $.messager.alert('提示', '请输入有效的数字ID'); return; }
+        var params = {};
+        if (!isNaN(id) && String(id) === keyword) {
+            // 纯数字 → 按ID精确查
+            params = { id: id };
+        } else {
+            // 非纯数字 → 按名称模糊查
+            params = { name: keyword };
+        }
         $.ajax({
-            url: '/seed/search', type: 'GET', data: { id: id }, dataType: 'json',
+            url: '/seed/search', type: 'GET', data: params, dataType: 'json',
             success: function(data) {
                 if (data && data.length > 0) {
                     grid.datagrid('loadData', { total: data.length, rows: data });
                     $.messager.show({ title: '筛选完成', msg: '共找到 ' + data.length + ' 条匹配记录' });
                 } else {
                     grid.datagrid('loadData', { total: 0, rows: [] });
-                    $.messager.alert('未找到', '没有匹配的种子ID【' + id + '】', 'warning');
+                    $.messager.alert('未找到', '没有匹配【' + keyword + '】的种子', 'warning');
                 }
             },
             error: function() { $.messager.alert('错误', '查询失败', 'error'); }
@@ -738,7 +745,7 @@
 
     // 清空搜索条件
     function clearSearch() {
-        $('#searchId').val('');
+        $('#searchKeyword').val('');
         $('#seedGrid').datagrid('reload');
         $.messager.show({ title: '已还原', msg: '已恢复全部种子数据' });
     }

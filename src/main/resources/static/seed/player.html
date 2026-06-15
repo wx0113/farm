@@ -307,7 +307,7 @@
         if (!rows.length) { tbody.html('<tr><td colspan="8">暂无数据</td></tr>'); return; }
         var html = '';
         rows.forEach(function(row) {
-            var avatarUrl = row.avatarUrl && row.avatarUrl !== 'null' ? row.avatarUrl : 'images/unknownUser.png';
+            var avatarUrl = row.avatarUrl && row.avatarUrl !== 'null' ? row.avatarUrl : '/images/unknownUser.png';
             avatarUrl += (avatarUrl.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
             html += '<tr id="row-' + row.id + '">'
                 + '<td>' + row.id + '</td>'
@@ -419,7 +419,7 @@
         addingRow = true;
         var html = '<tr class="adding-row" id="addRow">'
             + '<td><span style="color:#999;">自动</span></td>'
-            + '<td><img src="images/unknownUser.png" class="avatar-img" id="addAvatarPreview" onclick="showUploadForAdd()"></td>'
+            + '<td><img src="/images/unknownUser.png" class="avatar-img" id="addAvatarPreview" onclick="showUploadForAdd()"></td>'
             + '<td><input class="edit-input edit-input-name" id="addUsername" placeholder="必填"></td>'
             + '<td><input class="edit-input" id="addNickname" placeholder="选填"></td>'
             + '<td><img src="/images/exp.png" class="resource-icon"><input class="edit-input" id="addExp" value="0"></td>'

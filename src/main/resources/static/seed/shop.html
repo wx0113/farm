@@ -231,7 +231,7 @@
 <div class="layout">
     <div class="top-frame">
         <div class="user-panel" id="userPanel">
-            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
+            <img class="user-avatar" id="userAvatar" src="/images/unknownUser.png" alt="头像">
             <div class="user-info">
                 <div><strong id="currentNickname">未登录</strong></div>
                 <div>金币：<span id="currentGold">0</span>&nbsp;积分：<span id="currentPoints">0</span></div>
@@ -322,7 +322,7 @@
         if (player.avatarUrl) {
             $('#userAvatar').attr('src', player.avatarUrl);
         } else {
-            $('#userAvatar').attr('src', 'images/unknownUser.png');
+            $('#userAvatar').attr('src', '/images/unknownUser.png');
         }
     }
 
@@ -361,7 +361,7 @@
         rows.forEach(function(s) {
             seedDataMap[s.id] = s;  // 缓存到全局 map
             html += '<div class="seed-card" data-seed-id="' + s.id + '">'
-                + '<img src="' + s.matureImage + '" class="seed-card-img" onerror="this.src=\'images/unknownUser.png\'">'
+                + '<img src="' + s.matureImage + '" class="seed-card-img" onerror="this.src=\'/images/unknownUser.png\'">'
                 + '<div class="seed-card-name">' + escapeHtml(s.seedName || '') + '</div>'
                 + '<div class="seed-card-tip">' + escapeHtml(s.tipInfo || '暂无介绍') + '</div>'
                 + '<div class="seed-card-bottom">'
@@ -530,13 +530,13 @@
             var badgeStyle = qty > 0 ? '' : 'style="background:#9e9e9e;"';
             var imgStyle = qty > 0 ? '' : 'style="opacity:0.4;"';
             html += '<div class="storage-item" title="' + escapeHtml(s.seedName || '') + '">'
-                + '<img src="' + s.image + '" class="storage-item-img" ' + imgStyle + ' onerror="this.src=\'images/unknownUser.png\'">'
+                + '<img src="' + s.image + '" class="storage-item-img" ' + imgStyle + ' onerror="this.src=\'/images/unknownUser.png\'">'
                 + '<div class="storage-item-badge" ' + badgeStyle + '>' + qty + '</div>'
                 + '<div style="font-size:10px;color:#666;margin-top:2px;text-align:center;">' + escapeHtml(s.seedName || '') + '</div>'
                 + '</div>';
         });
         for (var i = visible.length; i < pageSize; i++) {
-            html += '<div class="storage-item" style="visibility:hidden;"><img src="images/unknownUser.png" class="storage-item-img"></div>';
+            html += '<div class="storage-item" style="visibility:hidden;"><img src="/images/unknownUser.png" class="storage-item-img"></div>';
         }
         $('#storageSeeds').html(html);
 

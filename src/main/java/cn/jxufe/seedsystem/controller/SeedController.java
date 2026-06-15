@@ -47,12 +47,19 @@ public class SeedController {
         return result;
     }
 
-    // 按种子ID搜索
+    // 按种子ID或名称搜索
     @GetMapping("/search")
     @ResponseBody
-    public List<Seed> search(@RequestParam Integer id) {
+    public List<Seed> search(@RequestParam(required = false) Integer id,
+                             @RequestParam(required = false) String name) {
         try {
-            return seedService.searchById(id);
+            if (name != null && !name.trim().isEmpty()) {
+                return seedService.searchByName(name.trim());
+            }
+            if (id != null) {
+                return seedService.searchById(id);
+            }
+            return List.of();
         } catch (Exception e) {
             e.printStackTrace();
             return List.of();

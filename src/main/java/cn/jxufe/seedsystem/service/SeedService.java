@@ -35,6 +35,15 @@ public class SeedService {
                 .orElse(List.of());
     }
 
+    public List<Seed> searchByName(String name) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<Seed> query = cb.createQuery(Seed.class);
+        Root<Seed> root = query.from(Seed.class);
+        query.where(cb.like(root.get("seedName"), "%" + name + "%"));
+        query.orderBy(cb.asc(root.get("id")));
+        return entityManager.createQuery(query).getResultList();
+    }
+
     public List<Seed> querySeeds(String seedName, int page, int rows) {
         CriteriaBuilder cb = entityManager.getCriteriaBuilder();
         CriteriaQuery<Seed> query = cb.createQuery(Seed.class);

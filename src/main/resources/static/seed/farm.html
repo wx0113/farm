@@ -145,7 +145,7 @@
 <div class="layout">
     <div class="top-frame">
         <div class="user-panel" id="userPanel">
-            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
+            <img class="user-avatar" id="userAvatar" src="/images/unknownUser.png" alt="头像">
             <div class="user-info">
                 <div><strong id="currentNickname">未知用户</strong></div>
                 <div>经验：<span id="currentExp">0</span>&nbsp;金币：<span id="currentGold">0</span>&nbsp;积分：<span id="currentPoints">0</span></div>
@@ -531,7 +531,7 @@
             var qtyText = qtyOk ? '库存：' + s.quantity : '库存：0（不足）';
             html += '<div class="seed-select-card' + disabledClass + '"'
                 + ' onclick="tryPlant(' + s.seedId + ', ' + canPlant + ', ' + qtyOk + ', \'' + esc(s.seedName) + '\', \'' + esc(reqText) + '\')">'
-                + '<img src="' + s.matureImage + '" onerror="this.src=\'images/unknownUser.png\'">'
+                + '<img src="' + s.matureImage + '" onerror="this.src=\'/images/unknownUser.png\'">'
                 + '<div class="seed-name">' + esc(s.seedName) + '</div>'
                 + '<div class="seed-qty">' + qtyText + '</div>'
                 + '<div class="seed-req">' + reqText + '</div>'
@@ -660,7 +660,7 @@
         $('#userCombo').combobox({
             valueField: 'nickname', textField: 'nickname',
             formatter: function(row) {
-                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
+                var avatarFile = row.avatarUrl ? row.avatarUrl : '/images/unknownUser.png';
                 return '<div style="display:flex;align-items:center;gap:10px;">'
                     + '<img src="' + avatarFile + '" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;" />'
                     + '<div>'
@@ -715,7 +715,7 @@
         $('#currentExp').text(player.exp);
         $('#currentGold').text(player.gold);
         $('#currentPoints').text(player.points);
-        $('#userAvatar').attr('src', player.avatarUrl || 'images/unknownUser.png');
+        $('#userAvatar').attr('src', player.avatarUrl || '/images/unknownUser.png');
     }
 
     function loadCurrentPlayer() {

@@ -123,7 +123,7 @@
     <div class="top-frame">
         <!-- 左上角用户信息面板 -->
         <div class="user-panel" id="userPanel">
-            <img class="user-avatar" id="userAvatar" src="images/unknownUser.png" alt="头像">
+            <img class="user-avatar" id="userAvatar" src="/images/unknownUser.png" alt="头像">
             <div class="user-info">
                 <div><strong id="currentNickname">未知用户</strong></div>
                 <div>
@@ -186,7 +186,7 @@
             valueField: 'nickname',
             textField: 'nickname',
             formatter: function(row) {
-                var avatarFile = row.avatarUrl ? row.avatarUrl : 'images/unknownUser.png';
+                var avatarFile = row.avatarUrl ? row.avatarUrl : '/images/unknownUser.png';
                 return '<div style="display:flex;align-items:center;gap:10px;">'
                     + '<img class="item-img" src="' + avatarFile + '" />'
                     + '<div>'
@@ -269,7 +269,7 @@
             if (player.avatarUrl) {
                 $('#userAvatar').attr('src', player.avatarUrl);
             } else {
-                $('#userAvatar').attr('src', 'images/unknownUser.png');
+                $('#userAvatar').attr('src', '/images/unknownUser.png');
             }
         }
 
